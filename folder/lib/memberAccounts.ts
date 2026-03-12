@@ -9,7 +9,7 @@ import { getRegionForCounty, type MemberProfile } from "@/app/components/memberD
 const scrypt = promisify(nodeScrypt);
 const dataDirectory = path.join(process.cwd(), "data");
 const accountsPath = path.join(dataDirectory, "memberAccounts.json");
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 const bootstrapAdminEmails = new Set(["bphesq@gmail.com", "bphesq@icloud.com"]);
 
 export type MemberAccountProvider = "credentials" | "google";

@@ -41,7 +41,7 @@ type PortalContentFileShape = {
   organizations: OrganizationEntry[];
 };
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 const dataDirectory = path.join(process.cwd(), "data");
 const contentPath = path.join(dataDirectory, "portalContent.json");
 
