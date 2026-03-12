@@ -1,17 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { usePortalContent } from "./portalContentClient";
 import {
   CandidateEntry,
   defaultCandidates,
-  readStoredCandidates,
-  subscribeToStoredCandidates,
 } from "./candidateData";
 import {
   defaultOrganizations,
-  readStoredOrganizations,
-  subscribeToStoredOrganizations,
 } from "./organizationData";
 
 const sections: CandidateEntry["category"][] = [
@@ -21,15 +17,10 @@ const sections: CandidateEntry["category"][] = [
 ];
 
 export default function ContentCandidatesView() {
-  const candidates = useSyncExternalStore(
-    subscribeToStoredCandidates,
-    readStoredCandidates,
-    () => defaultCandidates
-  );
-  const organizations = useSyncExternalStore(
-    subscribeToStoredOrganizations,
-    readStoredOrganizations,
-    () => defaultOrganizations
+  const { items: candidates } = usePortalContent("candidates", defaultCandidates);
+  const { items: organizations } = usePortalContent(
+    "organizations",
+    defaultOrganizations
   );
 
   return (

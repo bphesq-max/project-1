@@ -3,28 +3,21 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useSyncExternalStore } from "react";
+import { Suspense } from "react";
 import {
   defaultCandidates,
-  readStoredCandidates,
-  subscribeToStoredCandidates,
 } from "../components/candidateData";
 import {
   defaultEvents,
   formatEventDateTime,
-  readStoredEvents,
-  subscribeToStoredEvents,
 } from "../components/eventData";
 import {
   defaultStories,
-  readStoredStories,
-  subscribeToStoredStories,
 } from "../components/newsData";
 import {
   defaultOrganizations,
-  readStoredOrganizations,
-  subscribeToStoredOrganizations,
 } from "../components/organizationData";
+import { usePortalContent } from "../components/portalContentClient";
 import { buildStoryHref } from "../components/storyHref";
 
 function includesQuery(values: Array<string | undefined>, query: string) {
@@ -42,25 +35,12 @@ function includesQuery(values: Array<string | undefined>, query: string) {
 function SearchPageContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
-  const candidates = useSyncExternalStore(
-    subscribeToStoredCandidates,
-    readStoredCandidates,
-    () => defaultCandidates
-  );
-  const events = useSyncExternalStore(
-    subscribeToStoredEvents,
-    readStoredEvents,
-    () => defaultEvents
-  );
-  const stories = useSyncExternalStore(
-    subscribeToStoredStories,
-    readStoredStories,
-    () => defaultStories
-  );
-  const organizations = useSyncExternalStore(
-    subscribeToStoredOrganizations,
-    readStoredOrganizations,
-    () => defaultOrganizations
+  const { items: candidates } = usePortalContent("candidates", defaultCandidates);
+  const { items: events } = usePortalContent("events", defaultEvents);
+  const { items: stories } = usePortalContent("stories", defaultStories);
+  const { items: organizations } = usePortalContent(
+    "organizations",
+    defaultOrganizations
   );
 
   const candidateResults = candidates.filter((candidate) =>

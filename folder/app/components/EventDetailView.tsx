@@ -2,21 +2,42 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
-import { defaultEvents, formatEventDateTime, readStoredEvents, subscribeToStoredEvents } from "./eventData";
-
-const subscribeToHydration = () => () => {};
+import { useEffect, useState } from "react";
+import { defaultEvents, formatEventDateTime, type PortalEvent } from "./eventData";
+import { readPortalContentClientItem } from "./portalContentClient";
 
 export default function EventDetailView({ id }: { id: string }) {
-  const hasHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const events = useSyncExternalStore(
-    subscribeToStoredEvents,
-    readStoredEvents,
-    () => defaultEvents
+  const [event, setEvent] = useState<PortalEvent | null>(
+    defaultEvents.find((entry) => entry.id === id) ?? null
   );
-  const event = events.find((entry) => entry.id === id);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!hasHydrated) {
+  useEffect(() => {
+    let isMounted = true;
+
+    readPortalContentClientItem("events", id)
+      .then((item) => {
+        if (isMounted) {
+          setEvent(item ?? null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setEvent(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (isLoading) {
     return <section className="section"><p>Loading event...</p></section>;
   }
 

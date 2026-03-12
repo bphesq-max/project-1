@@ -3,38 +3,63 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useSyncExternalStore } from "react";
-import { defaultStories, readStoredStories, subscribeToStoredStories } from "./newsData";
+import { useEffect, useMemo, useState } from "react";
+import { type NewsEntry, defaultStories } from "./newsData";
+import { readPortalContentClientItem } from "./portalContentClient";
 import XPostEmbed from "./XPostEmbed";
-
-const subscribeToHydration = () => () => {};
 
 export default function NewsDetailView({ id }: { id: string }) {
   const searchParams = useSearchParams();
-  const hasHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const stories = useSyncExternalStore(
-    subscribeToStoredStories,
-    readStoredStories,
-    () => defaultStories
+  const fallbackStory = useMemo(
+    () =>
+      defaultStories.find((entry) => entry.id === id) ??
+      (searchParams.get("title")
+        ? {
+            id,
+            title: searchParams.get("title") ?? "",
+            region: searchParams.get("region") ?? "Statewide",
+            status: searchParams.get("status") ?? "Published",
+            category: searchParams.get("category") ?? "Campaign",
+            summary: searchParams.get("summary") ?? "",
+            body: searchParams.get("body") ?? "",
+            storyType:
+              (searchParams.get("storyType") as "article" | "x-post" | null) ??
+              "article",
+            sourceUrl: searchParams.get("sourceUrl") ?? undefined,
+            imageDataUrl: searchParams.get("imageDataUrl") ?? undefined,
+          }
+        : null),
+    [id, searchParams]
   );
-  const story =
-    stories.find((entry) => entry.id === id) ??
-    (searchParams.get("title")
-      ? {
-          id,
-          title: searchParams.get("title") ?? "",
-          region: searchParams.get("region") ?? "Statewide",
-          status: searchParams.get("status") ?? "Published",
-          category: searchParams.get("category") ?? "Campaign",
-          summary: searchParams.get("summary") ?? "",
-          body: searchParams.get("body") ?? "",
-          storyType: (searchParams.get("storyType") as "article" | "x-post" | null) ?? "article",
-          sourceUrl: searchParams.get("sourceUrl") ?? undefined,
-          imageDataUrl: searchParams.get("imageDataUrl") ?? undefined,
-        }
-      : null);
+  const [story, setStory] = useState<NewsEntry | null>(fallbackStory);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!hasHydrated) {
+  useEffect(() => {
+    let isMounted = true;
+
+    readPortalContentClientItem("stories", id)
+      .then((item) => {
+        if (isMounted) {
+          setStory(item ?? fallbackStory);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setStory(fallbackStory);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fallbackStory, id]);
+
+  if (isLoading) {
     return <section className="section"><p>Loading story...</p></section>;
   }
 

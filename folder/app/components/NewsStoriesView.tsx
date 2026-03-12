@@ -1,17 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
-import { defaultStories, readStoredStories, subscribeToStoredStories } from "./newsData";
+import { defaultStories } from "./newsData";
+import { usePortalContent } from "./portalContentClient";
 import { buildStoryHref } from "./storyHref";
 import XPostEmbed from "./XPostEmbed";
 
 export default function NewsStoriesView() {
-  const stories = useSyncExternalStore(
-    subscribeToStoredStories,
-    readStoredStories,
-    () => defaultStories
-  );
+  const { items: stories } = usePortalContent("stories", defaultStories);
 
   return (
     <div className="dashboard-grid">

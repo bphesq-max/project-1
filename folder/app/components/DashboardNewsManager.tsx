@@ -5,12 +5,14 @@ import { ChangeEvent, FormEvent, useState, useSyncExternalStore } from "react";
 import {
   defaultStories,
   NewsEntry,
-  persistStories,
-  readStoredStories,
-  subscribeToStoredStories,
 } from "./newsData";
 import { fetchLinkPreview } from "./linkPreview";
 import { REGION_OPTIONS } from "./memberData";
+import {
+  deletePortalContent,
+  savePortalContentItem,
+  usePortalContent,
+} from "./portalContentClient";
 import {
   StorySubmission,
   persistStorySubmissions,
@@ -41,11 +43,7 @@ function readFileAsDataUrl(file: File) {
 }
 
 export default function DashboardNewsManager() {
-  const stories = useSyncExternalStore(
-    subscribeToStoredStories,
-    readStoredStories,
-    () => defaultStories
-  );
+  const { items: stories, setItems: setStories } = usePortalContent("stories", defaultStories);
   const submissions = useSyncExternalStore(
     subscribeToStorySubmissions,
     readStoredStorySubmissions,
@@ -67,7 +65,7 @@ export default function DashboardNewsManager() {
     setForm((current) => ({ ...current, imageDataUrl }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const nextStory: NewsEntry = {
@@ -84,22 +82,27 @@ export default function DashboardNewsManager() {
       sourceUrl: form.sourceUrl.trim() || undefined,
     };
 
-    const nextStories = editingStoryId
-      ? stories.map((story) => (story.id === editingStoryId ? nextStory : story))
-      : [...stories, nextStory];
-
-    persistStories(nextStories);
-    if (editingSubmissionId) {
-      persistStorySubmissions(
-        submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+    try {
+      const savedStory = await savePortalContentItem("stories", nextStory);
+      setStories(
+        editingStoryId
+          ? stories.map((story) => (story.id === editingStoryId ? savedStory : story))
+          : [...stories, savedStory]
       );
+      if (editingSubmissionId) {
+        persistStorySubmissions(
+          submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+        );
+      }
+      setForm(initialForm);
+      setEditingStoryId(null);
+      setEditingSubmissionId(null);
+      setMessage(
+        editingStoryId ? `Updated "${savedStory.title}".` : `Saved "${savedStory.title}".`
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to save story.");
     }
-    setForm(initialForm);
-    setEditingStoryId(null);
-    setEditingSubmissionId(null);
-    setMessage(
-      editingStoryId ? `Updated "${nextStory.title}".` : `Saved "${nextStory.title}".`
-    );
   };
 
   const startEditing = (story: NewsEntry) => {
@@ -159,11 +162,17 @@ export default function DashboardNewsManager() {
       imageDataUrl: submission.imageDataUrl,
       sourceUrl: submission.sourceUrl,
     };
-    persistStories([...stories.filter((story) => story.id !== submission.id), nextStory]);
-    persistStorySubmissions(
-      submissions.filter((entry) => entry.submissionId !== submission.submissionId)
-    );
-    setMessage(`Published "${submission.title}".`);
+    void savePortalContentItem("stories", nextStory)
+      .then((savedStory) => {
+        setStories([...stories.filter((story) => story.id !== submission.id), savedStory]);
+        persistStorySubmissions(
+          submissions.filter((entry) => entry.submissionId !== submission.submissionId)
+        );
+        setMessage(`Published "${submission.title}".`);
+      })
+      .catch((error) => {
+        setMessage(error instanceof Error ? error.message : "Unable to publish story.");
+      });
   };
 
   const deleteSubmission = (submissionId: string) => {
@@ -208,13 +217,18 @@ export default function DashboardNewsManager() {
     }
   };
 
-  const deleteStory = (id: string) => {
-    persistStories(stories.filter((story) => story.id !== id));
-    if (editingStoryId === id) {
-      setEditingStoryId(null);
-      setForm(initialForm);
+  const deleteStory = async (id: string) => {
+    try {
+      await deletePortalContent("stories", id);
+      setStories(stories.filter((story) => story.id !== id));
+      if (editingStoryId === id) {
+        setEditingStoryId(null);
+        setForm(initialForm);
+      }
+      setMessage("Story removed.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove story.");
     }
-    setMessage("Story removed.");
   };
 
   return (

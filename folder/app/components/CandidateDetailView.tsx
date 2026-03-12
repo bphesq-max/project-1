@@ -2,22 +2,43 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
-import { defaultCandidates, readStoredCandidates, subscribeToStoredCandidates } from "./candidateData";
+import { useEffect, useState } from "react";
+import { type CandidateEntry, defaultCandidates } from "./candidateData";
+import { readPortalContentClientItem } from "./portalContentClient";
 import SocialLinkBox from "./SocialLinkBox";
 
-const subscribeToHydration = () => () => {};
-
 export default function CandidateDetailView({ id }: { id: string }) {
-  const hasHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const candidates = useSyncExternalStore(
-    subscribeToStoredCandidates,
-    readStoredCandidates,
-    () => defaultCandidates
+  const [candidate, setCandidate] = useState<CandidateEntry | null>(
+    defaultCandidates.find((entry) => entry.id === id) ?? null
   );
-  const candidate = candidates.find((entry) => entry.id === id);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!hasHydrated) {
+  useEffect(() => {
+    let isMounted = true;
+
+    readPortalContentClientItem("candidates", id)
+      .then((item) => {
+        if (isMounted) {
+          setCandidate(item ?? null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCandidate(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (isLoading) {
     return <section className="section"><p>Loading candidate...</p></section>;
   }
 

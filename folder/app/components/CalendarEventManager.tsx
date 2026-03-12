@@ -1,14 +1,14 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
+  defaultEvents,
   formatEventDateTime,
-  readStoredEvents,
-  subscribeToStoredEvents,
   toDateKey,
 } from "./eventData";
+import { usePortalContent } from "./portalContentClient";
 
 const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const viewModes = ["day", "week", "month"] as const;
@@ -53,11 +53,7 @@ function getWeekDays(anchorDate: Date) {
 }
 
 export default function CalendarEventManager() {
-  const events = useSyncExternalStore(
-    subscribeToStoredEvents,
-    readStoredEvents,
-    readStoredEvents
-  );
+  const { items: events } = usePortalContent("events", defaultEvents);
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [anchor, setAnchor] = useState(() =>
     events.length ? new Date(`${events[0].date}T12:00:00`) : new Date()

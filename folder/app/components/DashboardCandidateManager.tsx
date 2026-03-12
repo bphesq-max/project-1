@@ -5,11 +5,13 @@ import { ChangeEvent, FormEvent, useState, useSyncExternalStore } from "react";
 import {
   CandidateEntry,
   defaultCandidates,
-  persistCandidates,
-  readStoredCandidates,
-  subscribeToStoredCandidates,
 } from "./candidateData";
 import { fetchLinkPreview } from "./linkPreview";
+import {
+  deletePortalContent,
+  savePortalContentItem,
+  usePortalContent,
+} from "./portalContentClient";
 import {
   CandidateSubmission,
   persistCandidateSubmissions,
@@ -40,10 +42,9 @@ function readFileAsDataUrl(file: File) {
 }
 
 export default function DashboardCandidateManager() {
-  const candidates = useSyncExternalStore(
-    subscribeToStoredCandidates,
-    readStoredCandidates,
-    () => defaultCandidates
+  const { items: candidates, setItems: setCandidates } = usePortalContent(
+    "candidates",
+    defaultCandidates
   );
   const submissions = useSyncExternalStore(
     subscribeToCandidateSubmissions,
@@ -66,7 +67,7 @@ export default function DashboardCandidateManager() {
     setForm((current) => ({ ...current, imageDataUrl }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const editingCandidate = editingCandidateId
       ? candidates.find((candidate) => candidate.id === editingCandidateId)
@@ -91,26 +92,31 @@ export default function DashboardCandidateManager() {
       zipCodes: editingCandidate?.zipCodes ?? editingSubmission?.zipCodes,
     };
 
-    const nextCandidates = editingCandidateId
-      ? candidates.map((candidate) =>
-          candidate.id === editingCandidateId ? nextCandidate : candidate
-        )
-      : [...candidates, nextCandidate];
-
-    persistCandidates(nextCandidates);
-    if (editingSubmissionId) {
-      persistCandidateSubmissions(
-        submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+    try {
+      const savedCandidate = await savePortalContentItem("candidates", nextCandidate);
+      setCandidates(
+        editingCandidateId
+          ? candidates.map((candidate) =>
+              candidate.id === editingCandidateId ? savedCandidate : candidate
+            )
+          : [...candidates, savedCandidate]
       );
+      if (editingSubmissionId) {
+        persistCandidateSubmissions(
+          submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+        );
+      }
+      setForm(initialForm);
+      setEditingCandidateId(null);
+      setEditingSubmissionId(null);
+      setMessage(
+        editingCandidateId
+          ? `Updated "${savedCandidate.title}".`
+          : `Saved "${savedCandidate.title}".`
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to save candidate.");
     }
-    setForm(initialForm);
-    setEditingCandidateId(null);
-    setEditingSubmissionId(null);
-    setMessage(
-      editingCandidateId
-        ? `Updated "${nextCandidate.title}".`
-        : `Saved "${nextCandidate.title}".`
-    );
   };
 
   const startEditing = (candidate: CandidateEntry) => {
@@ -172,11 +178,20 @@ export default function DashboardCandidateManager() {
       districtLabels: submission.districtLabels,
       zipCodes: submission.zipCodes,
     };
-    persistCandidates([...candidates.filter((candidate) => candidate.id !== submission.id), nextCandidate]);
-    persistCandidateSubmissions(
-      submissions.filter((entry) => entry.submissionId !== submission.submissionId)
-    );
-    setMessage(`Published "${submission.title}".`);
+    void savePortalContentItem("candidates", nextCandidate)
+      .then((savedCandidate) => {
+        setCandidates([
+          ...candidates.filter((candidate) => candidate.id !== submission.id),
+          savedCandidate,
+        ]);
+        persistCandidateSubmissions(
+          submissions.filter((entry) => entry.submissionId !== submission.submissionId)
+        );
+        setMessage(`Published "${submission.title}".`);
+      })
+      .catch((error) => {
+        setMessage(error instanceof Error ? error.message : "Unable to publish candidate.");
+      });
   };
 
   const deleteSubmission = (submissionId: string) => {
@@ -215,13 +230,18 @@ export default function DashboardCandidateManager() {
     }
   };
 
-  const deleteCandidate = (id: string) => {
-    persistCandidates(candidates.filter((candidate) => candidate.id !== id));
-    if (editingCandidateId === id) {
-      setEditingCandidateId(null);
-      setForm(initialForm);
+  const deleteCandidate = async (id: string) => {
+    try {
+      await deletePortalContent("candidates", id);
+      setCandidates(candidates.filter((candidate) => candidate.id !== id));
+      if (editingCandidateId === id) {
+        setEditingCandidateId(null);
+        setForm(initialForm);
+      }
+      setMessage("Candidate removed.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove candidate.");
     }
-    setMessage("Candidate removed.");
   };
 
   return (

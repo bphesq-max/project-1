@@ -2,26 +2,46 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import {
   defaultOrganizations,
-  readStoredOrganizations,
-  subscribeToStoredOrganizations,
+  type OrganizationEntry,
 } from "./organizationData";
+import { readPortalContentClientItem } from "./portalContentClient";
 import SocialLinkBox from "./SocialLinkBox";
 
-const subscribeToHydration = () => () => {};
-
 export default function OrganizationDetailView({ id }: { id: string }) {
-  const hasHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const organizations = useSyncExternalStore(
-    subscribeToStoredOrganizations,
-    readStoredOrganizations,
-    () => defaultOrganizations
+  const [organization, setOrganization] = useState<OrganizationEntry | null>(
+    defaultOrganizations.find((entry) => entry.id === id) ?? null
   );
-  const organization = organizations.find((entry) => entry.id === id);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!hasHydrated) {
+  useEffect(() => {
+    let isMounted = true;
+
+    readPortalContentClientItem("organizations", id)
+      .then((item) => {
+        if (isMounted) {
+          setOrganization(item ?? null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setOrganization(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (isLoading) {
     return (
       <section className="section">
         <p>Loading organization...</p>

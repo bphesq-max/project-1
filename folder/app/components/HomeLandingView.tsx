@@ -6,19 +6,13 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
 import {
   defaultCandidates,
-  readStoredCandidates,
-  subscribeToStoredCandidates,
 } from "./candidateData";
 import {
   defaultStories,
-  readStoredStories,
-  subscribeToStoredStories,
 } from "./newsData";
 import {
   defaultEvents,
   formatEventDateTime,
-  readStoredEvents,
-  subscribeToStoredEvents,
 } from "./eventData";
 import {
   defaultMemberProfile,
@@ -27,6 +21,7 @@ import {
   readStoredMemberProfile,
   subscribeToStoredMemberProfile,
 } from "./memberData";
+import { usePortalContent } from "./portalContentClient";
 import { buildStoryHref } from "./storyHref";
 import XPostEmbed from "./XPostEmbed";
 
@@ -37,21 +32,9 @@ function normalizeZip(value?: string) {
 export default function HomeLandingView() {
   const { data: session, status } = useSession();
   const [showSignupComplete, setShowSignupComplete] = useState(false);
-  const candidates = useSyncExternalStore(
-    subscribeToStoredCandidates,
-    readStoredCandidates,
-    () => defaultCandidates
-  );
-  const stories = useSyncExternalStore(
-    subscribeToStoredStories,
-    readStoredStories,
-    () => defaultStories
-  );
-  const events = useSyncExternalStore(
-    subscribeToStoredEvents,
-    readStoredEvents,
-    () => defaultEvents
-  );
+  const { items: candidates } = usePortalContent("candidates", defaultCandidates);
+  const { items: stories } = usePortalContent("stories", defaultStories);
+  const { items: events } = usePortalContent("events", defaultEvents);
   const memberProfile = useSyncExternalStore(
     subscribeToStoredMemberProfile,
     readStoredMemberProfile,

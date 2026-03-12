@@ -5,13 +5,15 @@ import { ChangeEvent, FormEvent, useState, useSyncExternalStore } from "react";
 import {
   defaultEvents,
   formatEventDateTime,
-  persistEvents,
   PortalEvent,
-  readStoredEvents,
-  subscribeToStoredEvents,
 } from "./eventData";
 import { fetchLinkPreview } from "./linkPreview";
 import { REGION_OPTIONS } from "./memberData";
+import {
+  deletePortalContent,
+  savePortalContentItem,
+  usePortalContent,
+} from "./portalContentClient";
 import {
   EventSubmission,
   persistEventSubmissions,
@@ -41,11 +43,7 @@ function readFileAsDataUrl(file: File) {
 }
 
 export default function DashboardEventManager() {
-  const events = useSyncExternalStore(
-    subscribeToStoredEvents,
-    readStoredEvents,
-    () => defaultEvents
-  );
+  const { items: events, setItems: setEvents } = usePortalContent("events", defaultEvents);
   const submissions = useSyncExternalStore(
     subscribeToEventSubmissions,
     readStoredEventSubmissions,
@@ -69,7 +67,7 @@ export default function DashboardEventManager() {
     setForm((current) => ({ ...current, imageDataUrl }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const editingEvent = editingEventId
       ? events.find((entry) => entry.id === editingEventId)
@@ -93,24 +91,29 @@ export default function DashboardEventManager() {
       zipCodes: editingEvent?.zipCodes ?? editingSubmission?.zipCodes,
     };
 
-    const nextEvents = editingEventId
-      ? events.map((event) => (event.id === editingEventId ? nextEvent : event))
-      : [...events, nextEvent];
-
-    persistEvents(nextEvents);
-    if (editingSubmissionId) {
-      persistEventSubmissions(
-        submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+    try {
+      const savedEvent = await savePortalContentItem("events", nextEvent);
+      setEvents(
+        editingEventId
+          ? events.map((entry) => (entry.id === editingEventId ? savedEvent : entry))
+          : [...events, savedEvent]
       );
+      if (editingSubmissionId) {
+        persistEventSubmissions(
+          submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+        );
+      }
+      setForm(initialForm);
+      setEditingEventId(null);
+      setEditingSubmissionId(null);
+      setMessage(
+        editingEventId
+          ? `Updated "${savedEvent.title}" on the calendar.`
+          : `Saved "${savedEvent.title}" to the calendar.`
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to save event.");
     }
-    setForm(initialForm);
-    setEditingEventId(null);
-    setEditingSubmissionId(null);
-    setMessage(
-      editingEventId
-        ? `Updated "${nextEvent.title}" on the calendar.`
-        : `Saved "${nextEvent.title}" to the calendar.`
-    );
   };
 
   const startEditing = (event: PortalEvent) => {
@@ -169,11 +172,17 @@ export default function DashboardEventManager() {
       districtLabels: submission.districtLabels,
       zipCodes: submission.zipCodes,
     };
-    persistEvents([...events.filter((event) => event.id !== submission.id), nextEvent]);
-    persistEventSubmissions(
-      submissions.filter((entry) => entry.submissionId !== submission.submissionId)
-    );
-    setMessage(`Published "${submission.title}".`);
+    void savePortalContentItem("events", nextEvent)
+      .then((savedEvent) => {
+        setEvents([...events.filter((event) => event.id !== submission.id), savedEvent]);
+        persistEventSubmissions(
+          submissions.filter((entry) => entry.submissionId !== submission.submissionId)
+        );
+        setMessage(`Published "${submission.title}".`);
+      })
+      .catch((error) => {
+        setMessage(error instanceof Error ? error.message : "Unable to publish event.");
+      });
   };
 
   const deleteSubmission = (submissionId: string) => {
@@ -211,14 +220,18 @@ export default function DashboardEventManager() {
     }
   };
 
-  const deleteEvent = (id: string) => {
-    const nextEvents = events.filter((event) => event.id !== id);
-    persistEvents(nextEvents);
-    if (editingEventId === id) {
-      setEditingEventId(null);
-      setForm(initialForm);
+  const deleteEvent = async (id: string) => {
+    try {
+      await deletePortalContent("events", id);
+      setEvents(events.filter((event) => event.id !== id));
+      if (editingEventId === id) {
+        setEditingEventId(null);
+        setForm(initialForm);
+      }
+      setMessage("Event removed from the calendar.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove event.");
     }
-    setMessage("Event removed from the calendar.");
   };
 
   return (

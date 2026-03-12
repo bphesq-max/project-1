@@ -1,14 +1,13 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { defaultCandidates, readStoredCandidates, subscribeToStoredCandidates } from "./candidateData";
-import { defaultEvents, readStoredEvents, subscribeToStoredEvents } from "./eventData";
-import { defaultStories, readStoredStories, subscribeToStoredStories } from "./newsData";
+import { defaultCandidates } from "./candidateData";
+import { defaultEvents } from "./eventData";
+import { defaultStories } from "./newsData";
 import {
   defaultOrganizations,
-  readStoredOrganizations,
-  subscribeToStoredOrganizations,
 } from "./organizationData";
+import { usePortalContent } from "./portalContentClient";
 import { defaultMemberProfile, readStoredMemberProfile, subscribeToStoredMemberProfile } from "./memberData";
 import {
   readStoredCandidateSubmissions,
@@ -30,29 +29,45 @@ export type AdminSnapshot = {
   memberProfile: typeof defaultMemberProfile;
 };
 
-const defaultSnapshot: AdminSnapshot = {
-  candidatesCount: defaultCandidates.length,
-  eventsCount: defaultEvents.length,
-  storiesCount: defaultStories.length,
-  organizationsCount: defaultOrganizations.length,
-  pendingCount: 0,
-  memberProfile: defaultMemberProfile,
-};
+export function useAdminSnapshot() {
+  const { items: candidates } = usePortalContent("candidates", defaultCandidates);
+  const { items: events } = usePortalContent("events", defaultEvents);
+  const { items: stories } = usePortalContent("stories", defaultStories);
+  const { items: organizations } = usePortalContent(
+    "organizations",
+    defaultOrganizations
+  );
+  const memberProfile = useSyncExternalStore(
+    subscribeToStoredMemberProfile,
+    readStoredMemberProfile,
+    () => defaultMemberProfile
+  );
+  const candidateSubmissions = useSyncExternalStore(
+    subscribeToCandidateSubmissions,
+    readStoredCandidateSubmissions,
+    () => []
+  );
+  const eventSubmissions = useSyncExternalStore(
+    subscribeToEventSubmissions,
+    readStoredEventSubmissions,
+    () => []
+  );
+  const organizationSubmissions = useSyncExternalStore(
+    subscribeToOrganizationSubmissions,
+    readStoredOrganizationSubmissions,
+    () => []
+  );
+  const storySubmissions = useSyncExternalStore(
+    subscribeToStorySubmissions,
+    readStoredStorySubmissions,
+    () => []
+  );
 
-let cachedSnapshot = defaultSnapshot;
-
-function getAdminSnapshot(): AdminSnapshot {
-  const candidateSubmissions = readStoredCandidateSubmissions();
-  const eventSubmissions = readStoredEventSubmissions();
-  const organizationSubmissions = readStoredOrganizationSubmissions();
-  const storySubmissions = readStoredStorySubmissions();
-  const memberProfile = readStoredMemberProfile();
-
-  const nextSnapshot: AdminSnapshot = {
-    candidatesCount: readStoredCandidates().length,
-    eventsCount: readStoredEvents().length,
-    storiesCount: readStoredStories().length,
-    organizationsCount: readStoredOrganizations().length,
+  return {
+    candidatesCount: candidates.length,
+    eventsCount: events.length,
+    storiesCount: stories.length,
+    organizationsCount: organizations.length,
     pendingCount:
       candidateSubmissions.length +
       eventSubmissions.length +
@@ -60,44 +75,4 @@ function getAdminSnapshot(): AdminSnapshot {
       storySubmissions.length,
     memberProfile,
   };
-
-  if (
-    cachedSnapshot.candidatesCount === nextSnapshot.candidatesCount &&
-    cachedSnapshot.eventsCount === nextSnapshot.eventsCount &&
-    cachedSnapshot.storiesCount === nextSnapshot.storiesCount &&
-    cachedSnapshot.organizationsCount === nextSnapshot.organizationsCount &&
-    cachedSnapshot.pendingCount === nextSnapshot.pendingCount &&
-    cachedSnapshot.memberProfile === nextSnapshot.memberProfile
-  ) {
-    return cachedSnapshot;
-  }
-
-  cachedSnapshot = nextSnapshot;
-  return cachedSnapshot;
-}
-
-function subscribeToAdminSnapshot(onChange: () => void) {
-  const unsubscribers = [
-    subscribeToStoredCandidates(onChange),
-    subscribeToStoredEvents(onChange),
-    subscribeToStoredStories(onChange),
-    subscribeToStoredOrganizations(onChange),
-    subscribeToStoredMemberProfile(onChange),
-    subscribeToCandidateSubmissions(onChange),
-    subscribeToEventSubmissions(onChange),
-    subscribeToOrganizationSubmissions(onChange),
-    subscribeToStorySubmissions(onChange),
-  ];
-
-  return () => {
-    unsubscribers.forEach((unsubscribe) => unsubscribe());
-  };
-}
-
-export function useAdminSnapshot() {
-  return useSyncExternalStore(
-    subscribeToAdminSnapshot,
-    getAdminSnapshot,
-    () => defaultSnapshot
-  );
 }

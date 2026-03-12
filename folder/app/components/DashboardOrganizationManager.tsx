@@ -5,12 +5,14 @@ import { ChangeEvent, FormEvent, useState, useSyncExternalStore } from "react";
 import {
   defaultOrganizations,
   OrganizationEntry,
-  persistOrganizations,
-  readStoredOrganizations,
-  subscribeToStoredOrganizations,
 } from "./organizationData";
 import { fetchLinkPreview } from "./linkPreview";
 import { REGION_OPTIONS } from "./memberData";
+import {
+  deletePortalContent,
+  savePortalContentItem,
+  usePortalContent,
+} from "./portalContentClient";
 import {
   OrganizationSubmission,
   persistOrganizationSubmissions,
@@ -41,10 +43,9 @@ function readFileAsDataUrl(file: File) {
 }
 
 export default function DashboardOrganizationManager() {
-  const organizations = useSyncExternalStore(
-    subscribeToStoredOrganizations,
-    readStoredOrganizations,
-    () => defaultOrganizations
+  const { items: organizations, setItems: setOrganizations } = usePortalContent(
+    "organizations",
+    defaultOrganizations
   );
   const submissions = useSyncExternalStore(
     subscribeToOrganizationSubmissions,
@@ -67,7 +68,7 @@ export default function DashboardOrganizationManager() {
     setForm((current) => ({ ...current, imageDataUrl }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const nextOrganization: OrganizationEntry = {
@@ -84,26 +85,34 @@ export default function DashboardOrganizationManager() {
       instagramUrl: form.instagramUrl.trim() || undefined,
     };
 
-    const nextOrganizations = editingOrganizationId
-      ? organizations.map((organization) =>
-          organization.id === editingOrganizationId ? nextOrganization : organization
-        )
-      : [...organizations, nextOrganization];
-
-    persistOrganizations(nextOrganizations);
-    if (editingSubmissionId) {
-      persistOrganizationSubmissions(
-        submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+    try {
+      const savedOrganization = await savePortalContentItem(
+        "organizations",
+        nextOrganization
       );
+      setOrganizations(
+        editingOrganizationId
+          ? organizations.map((organization) =>
+              organization.id === editingOrganizationId ? savedOrganization : organization
+            )
+          : [...organizations, savedOrganization]
+      );
+      if (editingSubmissionId) {
+        persistOrganizationSubmissions(
+          submissions.filter((submission) => submission.submissionId !== editingSubmissionId)
+        );
+      }
+      setForm(initialForm);
+      setEditingOrganizationId(null);
+      setEditingSubmissionId(null);
+      setMessage(
+        editingOrganizationId
+          ? `Updated "${savedOrganization.title}".`
+          : `Saved "${savedOrganization.title}".`
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to save organization.");
     }
-    setForm(initialForm);
-    setEditingOrganizationId(null);
-    setEditingSubmissionId(null);
-    setMessage(
-      editingOrganizationId
-        ? `Updated "${nextOrganization.title}".`
-        : `Saved "${nextOrganization.title}".`
-    );
   };
 
   const startEditing = (organization: OrganizationEntry) => {
@@ -163,14 +172,22 @@ export default function DashboardOrganizationManager() {
       facebookUrl: submission.facebookUrl,
       instagramUrl: submission.instagramUrl,
     };
-    persistOrganizations([
-      ...organizations.filter((organization) => organization.id !== submission.id),
-      nextOrganization,
-    ]);
-    persistOrganizationSubmissions(
-      submissions.filter((entry) => entry.submissionId !== submission.submissionId)
-    );
-    setMessage(`Published "${submission.title}".`);
+    void savePortalContentItem("organizations", nextOrganization)
+      .then((savedOrganization) => {
+        setOrganizations([
+          ...organizations.filter((organization) => organization.id !== submission.id),
+          savedOrganization,
+        ]);
+        persistOrganizationSubmissions(
+          submissions.filter((entry) => entry.submissionId !== submission.submissionId)
+        );
+        setMessage(`Published "${submission.title}".`);
+      })
+      .catch((error) => {
+        setMessage(
+          error instanceof Error ? error.message : "Unable to publish organization."
+        );
+      });
   };
 
   const deleteSubmission = (submissionId: string) => {
@@ -209,13 +226,20 @@ export default function DashboardOrganizationManager() {
     }
   };
 
-  const deleteOrganization = (id: string) => {
-    persistOrganizations(organizations.filter((organization) => organization.id !== id));
-    if (editingOrganizationId === id) {
-      setEditingOrganizationId(null);
-      setForm(initialForm);
+  const deleteOrganization = async (id: string) => {
+    try {
+      await deletePortalContent("organizations", id);
+      setOrganizations(organizations.filter((organization) => organization.id !== id));
+      if (editingOrganizationId === id) {
+        setEditingOrganizationId(null);
+        setForm(initialForm);
+      }
+      setMessage("Organization removed.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to remove organization."
+      );
     }
-    setMessage("Organization removed.");
   };
 
   return (
