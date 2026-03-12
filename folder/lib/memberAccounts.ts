@@ -10,6 +10,7 @@ const scrypt = promisify(nodeScrypt);
 const dataDirectory = path.join(process.cwd(), "data");
 const accountsPath = path.join(dataDirectory, "memberAccounts.json");
 const databaseUrl = process.env.DATABASE_URL;
+const bootstrapAdminEmails = new Set(["bphesq@gmail.com", "bphesq@icloud.com"]);
 
 export type MemberAccountProvider = "credentials" | "google";
 export type MemberRole = "member" | "admin";
@@ -57,6 +58,10 @@ declare global {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function getBootstrapRole(email: string): MemberRole {
+  return bootstrapAdminEmails.has(email) ? "admin" : "member";
 }
 
 function normalizeProfile(profile: MemberProfile): MemberProfile {
@@ -182,7 +187,7 @@ function mapRowToAccount(row: MemberAccountRow): MemberAccountRecord {
     fullName: row.full_name,
     passwordHash: row.password_hash || undefined,
     providers,
-    role: row.role,
+    role: bootstrapAdminEmails.has(row.email) ? "admin" : row.role,
     profile,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
@@ -321,7 +326,7 @@ export async function createCredentialsAccount({
     fullName: fullName.trim(),
     passwordHash: await hashPassword(password),
     providers: ["credentials"],
-    role: normalizedEmail === "bphesq@gmail.com" ? "admin" : "member",
+    role: getBootstrapRole(normalizedEmail),
     profile: normalizeProfile({
       email: normalizedEmail,
       fullName: fullName.trim(),
@@ -355,7 +360,7 @@ export async function ensureOAuthAccount({
       email: normalizedEmail,
       fullName: fullName?.trim() || normalizedEmail,
       providers: [provider],
-      role: normalizedEmail === "bphesq@gmail.com" ? "admin" : "member",
+      role: getBootstrapRole(normalizedEmail),
       profile: normalizeProfile({
         email: normalizedEmail,
         fullName: fullName?.trim() || normalizedEmail,
@@ -380,6 +385,7 @@ export async function ensureOAuthAccount({
     providers: existing.providers.includes(provider)
       ? existing.providers
       : [...existing.providers, provider],
+    role: bootstrapAdminEmails.has(normalizedEmail) ? "admin" : existing.role,
     profile: normalizeProfile({
       ...existing.profile,
       fullName: fullName?.trim() || existing.profile.fullName || existing.fullName,
@@ -456,7 +462,7 @@ export async function updateMemberRole(email: string, role: MemberRole) {
 
   const nextAccount: MemberAccountRecord = {
     ...existing,
-    role,
+    role: bootstrapAdminEmails.has(normalizedEmail) ? "admin" : role,
     updatedAt: new Date().toISOString(),
   };
 
