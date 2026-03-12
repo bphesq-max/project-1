@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Nav from "./components/Nav";
+import Footer from "./components/Footer";
+import AuthProvider from "./components/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,11 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "California Conservative Portal",
-  description: "Statewide discovery and paid promotion platform for conservative candidates and organizations",
+  title: "Restore the Golden State",
+  description: "Statewide directory and promotion platform",
 };
-
-import Nav from "./components/Nav";
 
 export default function RootLayout({
   children,
@@ -27,8 +28,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Nav />
-        {children}
+        <AuthProvider>
+          <Nav />
+          <main className="container">
+            {children}
+          </main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

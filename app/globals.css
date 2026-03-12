@@ -35,6 +35,26 @@ a {
   text-decoration: none;
 }
 
+nav {
+  background: var(--background);
+  border-bottom: 1px solid #ddd;
+  padding: 12px 24px;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 24px;
+}
+
+nav a {
+  font-weight: bold;
+}
+
+main {
+  padding: 24px;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;

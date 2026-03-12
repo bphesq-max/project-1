@@ -1,0 +1,26 @@
+[
+  {
+    "id": "c58b6ab4-5545-4da6-8ba2-48ecdd697358",
+    "email": "bphesq@gmail.com",
+    "fullName": "Brian Higgins",
+    "passwordHash": "c085d843-f5fe-4096-afd8-d2c891d076b7:a902edc4904f4fb943d66715f3962324c6a4ffaefd8916d369b88c3eb1d2ba69f3ebb4c1ba4299bbdfa44bf0d9565538df84e38eba802780e6f2852f65a43a78",
+    "providers": [
+      "credentials"
+    ],
+    "role": "admin",
+    "profile": {
+      "email": "bphesq@gmail.com",
+      "fullName": "Brian Higgins",
+      "streetAddress": "1031 Kentfield Drive",
+      "zipCode": "93901",
+      "city": "Salinas",
+      "county": "Monterey",
+      "notes": "I want to know about Dennis Sanchez",
+      "districtConsent": true,
+      "receiveEmails": true,
+      "region": "Region 5 — Central Coast"
+    },
+    "createdAt": "2026-03-12T05:38:40.477Z",
+    "updatedAt": "2026-03-12T05:39:41.107Z"
+  }
+]
