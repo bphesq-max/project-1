@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAdminSnapshot } from "./adminSnapshot";
 import DashboardCandidateManager from "./DashboardCandidateManager";
 import DashboardEventManager from "./DashboardEventManager";
+import LegacyContentImport from "./LegacyContentImport";
 import DashboardMemberManager from "./DashboardMemberManager";
 import DashboardNewsManager from "./DashboardNewsManager";
 import DashboardOrganizationManager from "./DashboardOrganizationManager";
@@ -24,6 +25,8 @@ export default function DashboardAdminTabs() {
 
   return (
     <section className="page-stack">
+      <LegacyContentImport />
+
       <div className="stats">
         <div className="stat-card">
           <span className="stat-value">{snapshot.storiesCount}</span>
