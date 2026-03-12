@@ -4,6 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { PortalContentKind, PortalContentMap } from "@/lib/portalContent";
 
+async function parseJsonResponse<T>(response: Response) {
+  const raw = await response.text();
+
+  if (!raw) {
+    return null as T | null;
+  }
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    throw new Error("The server returned an invalid response.");
+  }
+}
+
 export function usePortalContent<K extends PortalContentKind>(
   kind: K,
   fallback: PortalContentMap[K][]
@@ -16,9 +30,9 @@ export function usePortalContent<K extends PortalContentKind>(
       const response = await fetch(`/api/portal-content/${kind}`, {
         cache: "no-store",
       });
-      const data = (await response.json()) as { items?: PortalContentMap[K][] };
+      const data = await parseJsonResponse<{ items?: PortalContentMap[K][] }>(response);
 
-      if (response.ok && data.items) {
+      if (response.ok && data?.items) {
         setItems(data.items);
       }
     } finally {
@@ -45,13 +59,13 @@ export async function savePortalContentItem<K extends PortalContentKind>(
     body: JSON.stringify({ item }),
   });
 
-  const data = (await response.json()) as {
+  const data = await parseJsonResponse<{
     item?: PortalContentMap[K];
     error?: string;
-  };
+  }>(response);
 
-  if (!response.ok || !data.item) {
-    throw new Error(data.error || "Unable to save content.");
+  if (!response.ok || !data?.item) {
+    throw new Error(data?.error || "Unable to save content.");
   }
 
   return data.item;
@@ -61,10 +75,10 @@ export async function deletePortalContent(kind: PortalContentKind, id: string) {
   const response = await fetch(`/api/portal-content/${kind}/${id}`, {
     method: "DELETE",
   });
-  const data = (await response.json()) as { error?: string };
+  const data = await parseJsonResponse<{ error?: string }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Unable to delete content.");
+    throw new Error(data?.error || "Unable to delete content.");
   }
 }
 
@@ -75,14 +89,14 @@ export async function readPortalContentClientItem<K extends PortalContentKind>(
   const response = await fetch(`/api/portal-content/${kind}/${id}`, {
     cache: "no-store",
   });
-  const data = (await response.json()) as {
+  const data = await parseJsonResponse<{
     item?: PortalContentMap[K];
     error?: string;
-  };
+  }>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Not found.");
+    throw new Error(data?.error || "Not found.");
   }
 
-  return data.item;
+  return data?.item;
 }

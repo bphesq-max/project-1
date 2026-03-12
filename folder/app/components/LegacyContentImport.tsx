@@ -48,14 +48,28 @@ function readLegacyArray<T>(storageKey: string) {
 }
 
 async function importAllLegacyContent(snapshot: LegacySnapshot) {
-  await Promise.all([
+  const operations = [
     ...snapshot.candidates.map((item) => savePortalContentItem("candidates", item)),
     ...snapshot.events.map((item) => savePortalContentItem("events", item)),
     ...snapshot.stories.map((item) => savePortalContentItem("stories", item)),
     ...snapshot.organizations.map((item) =>
       savePortalContentItem("organizations", item)
     ),
-  ]);
+  ];
+
+  const results = await Promise.allSettled(operations);
+  const failed = results.filter((result) => result.status === "rejected");
+
+  return {
+    importedCount: results.length - failed.length,
+    failedCount: failed.length,
+    firstError:
+      failed[0]?.status === "rejected"
+        ? failed[0].reason instanceof Error
+          ? failed[0].reason.message
+          : "One or more legacy items could not be imported."
+        : null,
+  };
 }
 
 export default function LegacyContentImport() {
@@ -91,9 +105,11 @@ export default function LegacyContentImport() {
     setMessage("");
 
     try {
-      await importAllLegacyContent(snapshot);
+      const result = await importAllLegacyContent(snapshot);
       setMessage(
-        `Imported ${totalItems} legacy item${totalItems === 1 ? "" : "s"} into the live database-backed store. Refresh the dashboard and public site to confirm.`
+        result.failedCount
+          ? `Imported ${result.importedCount} of ${totalItems} legacy items. ${result.firstError ?? "Some items could not be imported."}`
+          : `Imported ${result.importedCount} legacy item${result.importedCount === 1 ? "" : "s"} into the live database-backed store. Refresh the dashboard and public site to confirm.`
       );
     } catch (error) {
       setMessage(
