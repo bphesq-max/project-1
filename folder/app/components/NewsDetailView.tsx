@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { type NewsEntry, defaultStories } from "./newsData";
 import { readPortalContentClientItem } from "./portalContentClient";
+import ReactionControls from "./ReactionControls";
 import XPostEmbed from "./XPostEmbed";
 
 export default function NewsDetailView({ id }: { id: string }) {
@@ -77,6 +78,7 @@ export default function NewsDetailView({ id }: { id: string }) {
         </div>
         <h1 className="heading">{story.title}</h1>
         <p className="section-intro">{story.summary}</p>
+        <ReactionControls kind="stories" id={story.id} />
         {story.sourceUrl ? (
           <a href={story.sourceUrl} target="_blank" rel="noreferrer" className="external-link">
             {story.storyType === "x-post" ? "View post on X" : "Read source"}

@@ -7,6 +7,7 @@ import {
   listMemberAccounts,
   updateMemberRole,
 } from "@/lib/memberAccounts";
+import { listMemberReactions } from "@/lib/reactions";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -16,9 +17,8 @@ export async function GET() {
   }
 
   const members = await listMemberAccounts();
-
-  return NextResponse.json({
-    members: members.map((member) => ({
+  const membersWithReactions = await Promise.all(
+    members.map(async (member) => ({
       id: member.id,
       email: member.email,
       fullName: member.fullName,
@@ -28,7 +28,12 @@ export async function GET() {
       updatedAt: member.updatedAt,
       county: member.profile.county,
       region: member.profile.region,
-    })),
+      reactions: await listMemberReactions(member.email),
+    }))
+  );
+
+  return NextResponse.json({
+    members: membersWithReactions,
   });
 }
 
@@ -69,6 +74,7 @@ export async function POST(request: Request) {
         updatedAt: member.updatedAt,
         county: member.profile.county,
         region: member.profile.region,
+        reactions: await listMemberReactions(member.email),
       },
     });
   } catch (error) {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { defaultEvents, formatEventDateTime, type PortalEvent } from "./eventData";
 import { readPortalContentClientItem } from "./portalContentClient";
+import ReactionControls from "./ReactionControls";
 
 export default function EventDetailView({ id }: { id: string }) {
   const [event, setEvent] = useState<PortalEvent | null>(
@@ -52,6 +53,7 @@ export default function EventDetailView({ id }: { id: string }) {
         <span className="card-tag">{event.region}</span>
         <h1 className="heading">{event.title}</h1>
         <p className="section-intro">{formatEventDateTime(event.date, event.time)} · {event.location}</p>
+        <ReactionControls kind="events" id={event.id} />
         {event.sourceUrl ? (
           <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="external-link">
             Visit event site

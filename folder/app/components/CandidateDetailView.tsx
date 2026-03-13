@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { type CandidateEntry, defaultCandidates } from "./candidateData";
 import { readPortalContentClientItem } from "./portalContentClient";
+import ReactionControls from "./ReactionControls";
 import SocialLinkBox from "./SocialLinkBox";
 
 export default function CandidateDetailView({ id }: { id: string }) {
@@ -53,6 +54,7 @@ export default function CandidateDetailView({ id }: { id: string }) {
         <span className="card-tag">{candidate.category}</span>
         <h1 className="heading">{candidate.title}</h1>
         {candidate.summary ? <p className="section-intro">{candidate.summary}</p> : null}
+        <ReactionControls kind="candidates" id={candidate.id} />
         <SocialLinkBox
           xUrl={candidate.xUrl}
           facebookUrl={candidate.facebookUrl}

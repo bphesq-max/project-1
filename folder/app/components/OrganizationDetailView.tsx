@@ -8,6 +8,7 @@ import {
   type OrganizationEntry,
 } from "./organizationData";
 import { readPortalContentClientItem } from "./portalContentClient";
+import ReactionControls from "./ReactionControls";
 import SocialLinkBox from "./SocialLinkBox";
 
 export default function OrganizationDetailView({ id }: { id: string }) {
@@ -66,6 +67,7 @@ export default function OrganizationDetailView({ id }: { id: string }) {
         {organization.region ? <span className="card-tag">{organization.region}</span> : null}
         <h1 className="heading">{organization.title}</h1>
         {organization.summary ? <p className="section-intro">{organization.summary}</p> : null}
+        <ReactionControls kind="organizations" id={organization.id} />
         {organization.sourceUrl ? (
           <a href={organization.sourceUrl} target="_blank" rel="noreferrer" className="external-link">
             Visit website

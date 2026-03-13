@@ -12,6 +12,13 @@ type AdminMember = {
   updatedAt: string;
   county?: string;
   region?: string;
+  reactions?: Array<{
+    contentKind: "candidates" | "events" | "stories" | "organizations";
+    contentId: string;
+    reaction: "heart" | "thumbs_up" | "thumbs_down";
+    updatedAt: string;
+    title: string;
+  }>;
 };
 
 export default function DashboardMemberManager() {
@@ -116,6 +123,25 @@ export default function DashboardMemberManager() {
                   {member.county ? `${member.county} county` : "No county saved"} · Updated{" "}
                   {new Date(member.updatedAt).toLocaleDateString("en-US")}
                 </p>
+                <p className="dashboard-meta">
+                  {member.reactions?.length ?? 0} recorded reaction
+                  {(member.reactions?.length ?? 0) === 1 ? "" : "s"}
+                </p>
+                {member.reactions?.length ? (
+                  <div className="reaction-history-list">
+                    {member.reactions.map((reaction) => (
+                      <div
+                        key={`${reaction.contentKind}-${reaction.contentId}`}
+                        className="reaction-history-item"
+                      >
+                        <strong>{reaction.title}</strong>
+                        <span>
+                          {reaction.contentKind} · {reaction.reaction.replace("_", " ")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="dashboard-inline-actions">
                   <button
                     type="button"

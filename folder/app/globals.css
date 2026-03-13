@@ -579,6 +579,46 @@ main.container {
   background: rgba(22, 50, 80, 0.08);
 }
 
+.reaction-box {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(22, 50, 80, 0.04);
+}
+
+.reaction-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.reaction-button {
+  display: grid;
+  gap: 6px;
+  min-width: 120px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--primary-blue);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.reaction-button.is-active {
+  border-color: rgba(201, 151, 31, 0.55);
+  background: rgba(201, 151, 31, 0.12);
+}
+
+.reaction-note {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .x-embed-shell {
   margin-bottom: 18px;
   overflow: hidden;
@@ -836,6 +876,21 @@ select {
 .timeline-body p {
   color: var(--muted);
   line-height: 1.65;
+}
+
+.reaction-history-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.reaction-history-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(22, 50, 80, 0.04);
 }
 
 .dashboard-actions {
