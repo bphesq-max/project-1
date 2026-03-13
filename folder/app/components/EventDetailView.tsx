@@ -53,7 +53,6 @@ export default function EventDetailView({ id }: { id: string }) {
         <span className="card-tag">{event.region}</span>
         <h1 className="heading">{event.title}</h1>
         <p className="section-intro">{formatEventDateTime(event.date, event.time)} · {event.location}</p>
-        <ReactionControls kind="events" id={event.id} />
         {event.sourceUrl ? (
           <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="external-link">
             Visit event site
@@ -62,6 +61,7 @@ export default function EventDetailView({ id }: { id: string }) {
         {event.imageDataUrl ? <img src={event.imageDataUrl} alt={event.title} className="detail-image" /> : null}
         <p className="detail-body">{event.description}</p>
       </div>
+      <ReactionControls kind="events" id={event.id} />
     </section>
   );
 }

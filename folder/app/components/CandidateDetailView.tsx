@@ -54,7 +54,6 @@ export default function CandidateDetailView({ id }: { id: string }) {
         <span className="card-tag">{candidate.category}</span>
         <h1 className="heading">{candidate.title}</h1>
         {candidate.summary ? <p className="section-intro">{candidate.summary}</p> : null}
-        <ReactionControls kind="candidates" id={candidate.id} />
         <SocialLinkBox
           xUrl={candidate.xUrl}
           facebookUrl={candidate.facebookUrl}
@@ -72,6 +71,7 @@ export default function CandidateDetailView({ id }: { id: string }) {
         ) : null}
         {candidate.body ? <p className="detail-body">{candidate.body}</p> : null}
       </div>
+      <ReactionControls kind="candidates" id={candidate.id} />
     </section>
   );
 }

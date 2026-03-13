@@ -8,9 +8,9 @@ import type { PortalContentKind } from "@/lib/portalContent";
 import type { ReactionValue } from "@/lib/reactions";
 
 const options: Array<{ value: ReactionValue; label: string; icon: string }> = [
-  { value: "heart", label: "Heart", icon: "Heart" },
-  { value: "thumbs_up", label: "Thumbs up", icon: "Thumbs up" },
-  { value: "thumbs_down", label: "Thumbs down", icon: "Thumbs down" },
+  { value: "heart", label: "Heart", icon: "❤️" },
+  { value: "thumbs_up", label: "Thumbs up", icon: "👍" },
+  { value: "thumbs_down", label: "Thumbs down", icon: "👎" },
 ];
 
 export default function ReactionControls({
@@ -83,7 +83,6 @@ export default function ReactionControls({
 
   return (
     <div className="reaction-box">
-      <span className="card-tag">Member reactions</span>
       {session?.user ? (
         <>
           <div className="reaction-grid">
@@ -94,15 +93,15 @@ export default function ReactionControls({
                 className={`reaction-button${reaction === option.value ? " is-active" : ""}`}
                 onClick={() => handleReact(option.value)}
                 disabled={isSaving}
+                aria-label={option.label}
+                title={option.label}
               >
-                <strong>{option.icon}</strong>
-                <span>{option.label}</span>
+                <span className="reaction-emoji" aria-hidden="true">
+                  {option.icon}
+                </span>
               </button>
             ))}
           </div>
-          <p className="reaction-note">
-            Only you and site admins can see reaction history or totals.
-          </p>
           {message ? <p className="form-message">{message}</p> : null}
         </>
       ) : status === "loading" ? (

@@ -78,7 +78,6 @@ export default function NewsDetailView({ id }: { id: string }) {
         </div>
         <h1 className="heading">{story.title}</h1>
         <p className="section-intro">{story.summary}</p>
-        <ReactionControls kind="stories" id={story.id} />
         {story.sourceUrl ? (
           <a href={story.sourceUrl} target="_blank" rel="noreferrer" className="external-link">
             {story.storyType === "x-post" ? "View post on X" : "Read source"}
@@ -91,6 +90,7 @@ export default function NewsDetailView({ id }: { id: string }) {
         ) : null}
         {story.body ? <p className="detail-body">{story.body}</p> : null}
       </div>
+      <ReactionControls kind="stories" id={story.id} />
     </section>
   );
 }

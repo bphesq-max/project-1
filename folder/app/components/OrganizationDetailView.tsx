@@ -67,7 +67,6 @@ export default function OrganizationDetailView({ id }: { id: string }) {
         {organization.region ? <span className="card-tag">{organization.region}</span> : null}
         <h1 className="heading">{organization.title}</h1>
         {organization.summary ? <p className="section-intro">{organization.summary}</p> : null}
-        <ReactionControls kind="organizations" id={organization.id} />
         {organization.sourceUrl ? (
           <a href={organization.sourceUrl} target="_blank" rel="noreferrer" className="external-link">
             Visit website
@@ -87,6 +86,7 @@ export default function OrganizationDetailView({ id }: { id: string }) {
         ) : null}
         {organization.body ? <p className="detail-body">{organization.body}</p> : null}
       </div>
+      <ReactionControls kind="organizations" id={organization.id} />
     </section>
   );
 }
