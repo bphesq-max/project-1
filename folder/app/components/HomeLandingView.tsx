@@ -31,6 +31,29 @@ function normalizeZip(value?: string) {
   return value?.trim().slice(0, 5) ?? "";
 }
 
+const heroMontageImages = [
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Tunnel%20View%20of%20Yosemite%20Valley.JPG",
+    alt: "Yosemite Valley seen from Tunnel View",
+    className: "hero-montage-tall",
+  },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/GoldenGateBridge-001.jpg",
+    alt: "Golden Gate Bridge at sunset",
+    className: "hero-montage-top",
+  },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Big%20Sur%20Coast%20California.JPG",
+    alt: "Big Sur coastline in California",
+    className: "hero-montage-bottom-left",
+  },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/California%20Redwood%20National%20and%20State%20Parks.jpg",
+    alt: "Redwoods in Northern California",
+    className: "hero-montage-bottom-right",
+  },
+];
+
 export default function HomeLandingView() {
   const { data: session, status } = useSession();
   const [showSignupComplete, setShowSignupComplete] = useState(false);
@@ -147,19 +170,12 @@ export default function HomeLandingView() {
           </div>
         </div>
 
-        <aside className="hero-panel" aria-label="Platform summary">
-          <div className="hero-panel-stat">
-            <span className="hero-panel-stat-value">Free</span>
-            <p>Open to the public.</p>
-          </div>
-          <div className="hero-panel-stat">
-            <span className="hero-panel-stat-value">Stay Ready</span>
-            <p>See what matters without the clutter.</p>
-          </div>
-          <div className="hero-panel-stat">
-            <span className="hero-panel-stat-value">Show Up</span>
-            <p>News, events, and candidates together.</p>
-          </div>
+        <aside className="hero-montage" aria-label="California photo montage">
+          {heroMontageImages.map((image) => (
+            <div key={image.src} className={`hero-montage-card ${image.className}`}>
+              <img src={image.src} alt={image.alt} className="hero-montage-image" />
+            </div>
+          ))}
         </aside>
       </section>
 
