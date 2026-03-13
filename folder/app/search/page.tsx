@@ -1,7 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import {
@@ -19,6 +18,7 @@ import {
 } from "../components/organizationData";
 import { usePortalContent } from "../components/portalContentClient";
 import { buildStoryHref } from "../components/storyHref";
+import TrackedContentLink from "../components/TrackedContentLink";
 
 function includesQuery(values: Array<string | undefined>, query: string) {
   if (!query) {
@@ -115,12 +115,19 @@ function SearchPageContent() {
         </div>
         <div className="card-grid">
           {candidateResults.map((candidate) => (
-            <Link key={candidate.id} href={`/candidates/${candidate.id}`} target="_blank" rel="noreferrer" className="card card-link">
+            <TrackedContentLink
+              key={candidate.id}
+              href={`/candidates/${candidate.id}`}
+              contentKind="candidates"
+              contentId={candidate.id}
+              title={candidate.title}
+              className="card card-link"
+            >
               <span className="card-tag">{candidate.category}</span>
               <h3>{candidate.title}</h3>
               {candidate.summary ? <p>{candidate.summary}</p> : null}
               {candidate.imageDataUrl ? <img src={candidate.imageDataUrl} alt={candidate.title} className="dashboard-event-image" /> : null}
-            </Link>
+            </TrackedContentLink>
           ))}
         </div>
       </section>
@@ -132,12 +139,19 @@ function SearchPageContent() {
         </div>
         <div className="card-grid">
           {eventResults.map((event) => (
-            <Link key={event.id} href={`/events/${event.id}`} target="_blank" rel="noreferrer" className="card card-link">
+            <TrackedContentLink
+              key={event.id}
+              href={`/events/${event.id}`}
+              contentKind="events"
+              contentId={event.id}
+              title={event.title}
+              className="card card-link"
+            >
               <span className="card-tag">{event.region}</span>
               <h3>{event.title}</h3>
               <p>{event.description}</p>
               <p className="dashboard-meta">{formatEventDateTime(event.date, event.time)}</p>
-            </Link>
+            </TrackedContentLink>
           ))}
         </div>
       </section>
@@ -149,11 +163,18 @@ function SearchPageContent() {
         </div>
         <div className="card-grid">
           {storyResults.map((story) => (
-            <Link key={story.id} href={buildStoryHref(story.id, story)} target="_blank" rel="noreferrer" className="card card-link">
+            <TrackedContentLink
+              key={story.id}
+              href={buildStoryHref(story.id, story)}
+              contentKind="stories"
+              contentId={story.id}
+              title={story.title}
+              className="card card-link"
+            >
               <span className="card-tag">{story.region}</span>
               <h3>{story.title}</h3>
               <p>{story.summary}</p>
-            </Link>
+            </TrackedContentLink>
           ))}
         </div>
       </section>
@@ -165,11 +186,18 @@ function SearchPageContent() {
         </div>
         <div className="card-grid">
           {organizationResults.map((organization) => (
-            <Link key={organization.id} href={`/organizations/${organization.id}`} target="_blank" rel="noreferrer" className="card card-link">
+            <TrackedContentLink
+              key={organization.id}
+              href={`/organizations/${organization.id}`}
+              contentKind="organizations"
+              contentId={organization.id}
+              title={organization.title}
+              className="card card-link"
+            >
               <span className="card-tag">{organization.region}</span>
               <h3>{organization.title}</h3>
               {organization.summary ? <p>{organization.summary}</p> : null}
-            </Link>
+            </TrackedContentLink>
           ))}
         </div>
       </section>

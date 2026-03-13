@@ -2,13 +2,13 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   defaultEvents,
   formatEventDateTime,
   toDateKey,
 } from "./eventData";
 import { usePortalContent } from "./portalContentClient";
+import TrackedContentLink from "./TrackedContentLink";
 
 const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const viewModes = ["day", "week", "month"] as const;
@@ -119,7 +119,14 @@ export default function CalendarEventManager() {
         <div className="calendar-featured-grid">
           {featuredEvents.length ? (
             featuredEvents.map((event) => (
-              <Link key={event.id} href={`/events/${event.id}`} target="_blank" rel="noreferrer" className="calendar-featured-card card-link">
+              <TrackedContentLink
+                key={event.id}
+                href={`/events/${event.id}`}
+                contentKind="events"
+                contentId={event.id}
+                title={event.title}
+                className="calendar-featured-card card-link"
+              >
                 <span className="card-tag">{event.region}</span>
                 <h3>{event.title}</h3>
                 <p>{event.description}</p>
@@ -135,7 +142,7 @@ export default function CalendarEventManager() {
                   {" · "}
                   {event.location}
                 </p>
-              </Link>
+              </TrackedContentLink>
             ))
           ) : (
             <article className="calendar-featured-placeholder">

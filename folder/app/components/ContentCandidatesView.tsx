@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePortalContent } from "./portalContentClient";
 import {
   CandidateEntry,
@@ -9,6 +8,7 @@ import {
 import {
   defaultOrganizations,
 } from "./organizationData";
+import TrackedContentLink from "./TrackedContentLink";
 
 const sections: CandidateEntry["category"][] = [
   "Statewide Candidates",
@@ -32,10 +32,17 @@ export default function ContentCandidatesView() {
           <section key={section} className="section">
             <h1 className="heading">{section}</h1>
             {sectionCandidates.map((candidate) => (
-              <Link key={candidate.id} href={`/candidates/${candidate.id}`} target="_blank" rel="noreferrer" className="card card-link">
+              <TrackedContentLink
+                key={candidate.id}
+                href={`/candidates/${candidate.id}`}
+                contentKind="candidates"
+                contentId={candidate.id}
+                title={candidate.title}
+                className="card card-link"
+              >
                 <h2>{candidate.title}</h2>
                 {candidate.summary ? <p>{candidate.summary}</p> : null}
-              </Link>
+              </TrackedContentLink>
             ))}
           </section>
         );
@@ -44,16 +51,17 @@ export default function ContentCandidatesView() {
       <section className="section">
         <h1 className="heading">Featured Organizations</h1>
         {organizations.map((organization) => (
-          <Link
+          <TrackedContentLink
             key={organization.id}
             href={`/organizations/${organization.id}`}
-            target="_blank"
-            rel="noreferrer"
+            contentKind="organizations"
+            contentId={organization.id}
+            title={organization.title}
             className="card card-link"
           >
             <h2>{organization.title}</h2>
             {organization.summary ? <p>{organization.summary}</p> : null}
-          </Link>
+          </TrackedContentLink>
         ))}
       </section>
     </>

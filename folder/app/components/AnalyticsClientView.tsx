@@ -14,10 +14,46 @@ type ReactionSummaryItem = {
   thumbsDownCount: number;
 };
 
+type AnalyticsSummaryItem = {
+  label: string;
+  count: number;
+};
+
+type ContentClickSummaryItem = {
+  contentKind: "candidates" | "events" | "stories" | "organizations";
+  contentId: string;
+  title: string;
+  targetPath: string;
+  count: number;
+};
+
+type PathTransitionItem = {
+  fromPath: string;
+  toPath: string;
+  count: number;
+};
+
 export default function AnalyticsClientView() {
   const snapshot = useAdminSnapshot();
   const memberProfile = snapshot.memberProfile;
   const [reactions, setReactions] = useState<ReactionSummaryItem[]>([]);
+  const [analytics, setAnalytics] = useState<{
+    totalPageViews: number;
+    totalContentClicks: number;
+    topReferrers: AnalyticsSummaryItem[];
+    topEntryPages: AnalyticsSummaryItem[];
+    topViewedPages: AnalyticsSummaryItem[];
+    topTransitions: PathTransitionItem[];
+    topContentClicks: ContentClickSummaryItem[];
+  }>({
+    totalPageViews: 0,
+    totalContentClicks: 0,
+    topReferrers: [],
+    topEntryPages: [],
+    topViewedPages: [],
+    topTransitions: [],
+    topContentClicks: [],
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -43,6 +79,52 @@ export default function AnalyticsClientView() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/api/admin/analytics", { cache: "no-store" })
+      .then(async (response) => {
+        const data = (await response.json()) as {
+          totalPageViews?: number;
+          totalContentClicks?: number;
+          topReferrers?: AnalyticsSummaryItem[];
+          topEntryPages?: AnalyticsSummaryItem[];
+          topViewedPages?: AnalyticsSummaryItem[];
+          topTransitions?: PathTransitionItem[];
+          topContentClicks?: ContentClickSummaryItem[];
+        };
+
+        if (isMounted && response.ok) {
+          setAnalytics({
+            totalPageViews: data.totalPageViews ?? 0,
+            totalContentClicks: data.totalContentClicks ?? 0,
+            topReferrers: data.topReferrers ?? [],
+            topEntryPages: data.topEntryPages ?? [],
+            topViewedPages: data.topViewedPages ?? [],
+            topTransitions: data.topTransitions ?? [],
+            topContentClicks: data.topContentClicks ?? [],
+          });
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAnalytics({
+            totalPageViews: 0,
+            totalContentClicks: 0,
+            topReferrers: [],
+            topEntryPages: [],
+            topViewedPages: [],
+            topTransitions: [],
+            topContentClicks: [],
+          });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <section className="section page-stack">
       <div className="section-header">
@@ -54,6 +136,14 @@ export default function AnalyticsClientView() {
       </div>
 
       <div className="stats">
+        <div className="stat-card">
+          <span className="stat-value">{analytics.totalPageViews}</span>
+          <p>Tracked page views</p>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value">{analytics.totalContentClicks}</span>
+          <p>Tracked content clicks</p>
+        </div>
         <div className="stat-card">
           <span className="stat-value">{snapshot.candidatesCount}</span>
           <p>Published candidates</p>
@@ -82,6 +172,91 @@ export default function AnalyticsClientView() {
 
       <div className="dashboard-panel page-stack">
         <div>
+          <h2 className="panel-title">Traffic sources</h2>
+          <p className="section-intro">
+            Track where visitors came from, which pages they landed on, and the
+            most-viewed destinations across the site.
+          </p>
+        </div>
+        <div className="dashboard-grid">
+          <div className="dashboard-panel">
+            <h3 className="panel-title">Top referrers</h3>
+            <div className="stack-list">
+              {analytics.topReferrers.length ? analytics.topReferrers.map((item) => (
+                <div key={item.label} className="dashboard-item">
+                  <h3>{item.label}</h3>
+                  <p className="dashboard-meta">{item.count} visit{item.count === 1 ? "" : "s"}</p>
+                </div>
+              )) : <p className="section-intro">No external referrers recorded yet.</p>}
+            </div>
+          </div>
+          <div className="dashboard-panel">
+            <h3 className="panel-title">Top entry pages</h3>
+            <div className="stack-list">
+              {analytics.topEntryPages.length ? analytics.topEntryPages.map((item) => (
+                <div key={item.label} className="dashboard-item">
+                  <h3>{item.label}</h3>
+                  <p className="dashboard-meta">{item.count} landing visit{item.count === 1 ? "" : "s"}</p>
+                </div>
+              )) : <p className="section-intro">No landing pages recorded yet.</p>}
+            </div>
+          </div>
+          <div className="dashboard-panel">
+            <h3 className="panel-title">Most viewed pages</h3>
+            <div className="stack-list">
+              {analytics.topViewedPages.length ? analytics.topViewedPages.map((item) => (
+                <div key={item.label} className="dashboard-item">
+                  <h3>{item.label}</h3>
+                  <p className="dashboard-meta">{item.count} page view{item.count === 1 ? "" : "s"}</p>
+                </div>
+              )) : <p className="section-intro">No page views recorded yet.</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-panel page-stack">
+        <div>
+          <h2 className="panel-title">User journeys</h2>
+          <p className="section-intro">
+            Follow the common path people take through the site and which content
+            cards are driving the most deeper clicks.
+          </p>
+        </div>
+        <div className="dashboard-grid">
+          <div className="dashboard-panel">
+            <h3 className="panel-title">Common path transitions</h3>
+            <div className="stack-list">
+              {analytics.topTransitions.length ? analytics.topTransitions.map((item) => (
+                <div key={`${item.fromPath}-${item.toPath}`} className="dashboard-item">
+                  <h3>{item.fromPath} → {item.toPath}</h3>
+                  <p className="dashboard-meta">{item.count} transition{item.count === 1 ? "" : "s"}</p>
+                </div>
+              )) : <p className="section-intro">No navigation paths recorded yet.</p>}
+            </div>
+          </div>
+          <div className="dashboard-panel">
+            <h3 className="panel-title">Top content clicks</h3>
+            <div className="stack-list">
+              {analytics.topContentClicks.length ? analytics.topContentClicks.map((item) => (
+                <div key={`${item.contentKind}-${item.contentId}`} className="dashboard-item">
+                  <div className="dashboard-item-top">
+                    <div className="dashboard-item-tags">
+                      <span className="card-tag">{item.contentKind}</span>
+                    </div>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p className="dashboard-meta">{item.targetPath}</p>
+                  <p className="dashboard-meta">{item.count} click{item.count === 1 ? "" : "s"}</p>
+                </div>
+              )) : <p className="section-intro">No content clicks recorded yet.</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-panel page-stack">
+        <div>
           <h2 className="panel-title">Member profile status</h2>
           <p className="section-intro">
             Current browser profile: {memberProfile.county ? `${memberProfile.county}${memberProfile.region ? `, ${memberProfile.region}` : ""}` : "No county saved yet"}.
@@ -90,7 +265,9 @@ export default function AnalyticsClientView() {
         <div>
           <h2 className="panel-title">Secure database next step</h2>
           <p className="section-intro">
-            Registered users are still stored locally in the browser today. To keep a secure database of registered users, the next step is moving member profiles into a real backend tied to Google or email sign-in.
+            Member accounts are now stored in the production database. The next
+            refinement after this analytics layer is expanding tracking into
+            email opt-ins, submissions, and other campaign actions.
           </p>
           <Link href="/members" className="dashboard-inline-button">Review member flow</Link>
         </div>

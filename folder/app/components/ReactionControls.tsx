@@ -22,7 +22,6 @@ export default function ReactionControls({
 }) {
   const { data: session, status } = useSession();
   const [reaction, setReaction] = useState<ReactionValue | null>(null);
-  const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -53,8 +52,6 @@ export default function ReactionControls({
 
   const handleReact = async (nextReaction: ReactionValue) => {
     setIsSaving(true);
-    setMessage("");
-
     try {
       const response = await fetch(`/api/reactions/${kind}/${id}`, {
         method: "POST",
@@ -73,9 +70,8 @@ export default function ReactionControls({
       }
 
       setReaction(data.reaction ?? null);
-      setMessage("Your reaction was saved.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to save reaction.");
+      console.error(error);
     } finally {
       setIsSaving(false);
     }
@@ -102,7 +98,6 @@ export default function ReactionControls({
               </button>
             ))}
           </div>
-          {message ? <p className="form-message">{message}</p> : null}
         </>
       ) : status === "loading" ? (
         <p className="reaction-note">Checking member access...</p>

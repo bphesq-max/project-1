@@ -581,22 +581,21 @@ main.container {
 
 .reaction-box {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  justify-content: center;
+  margin-top: 12px;
 }
 
 .reaction-grid {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .reaction-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 58px;
+  width: 40px;
+  height: 40px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
@@ -611,7 +610,7 @@ main.container {
 }
 
 .reaction-emoji {
-  font-size: 1.9rem;
+  font-size: 1.05rem;
   line-height: 1;
 }
 

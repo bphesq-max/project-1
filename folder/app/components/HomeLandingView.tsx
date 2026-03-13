@@ -24,6 +24,7 @@ import {
 import { usePortalContent } from "./portalContentClient";
 import { buildStoryHref } from "./storyHref";
 import XPostEmbed from "./XPostEmbed";
+import TrackedContentLink from "./TrackedContentLink";
 
 function normalizeZip(value?: string) {
   return value?.trim().slice(0, 5) ?? "";
@@ -225,22 +226,30 @@ export default function HomeLandingView() {
                 <h3>{story.title}</h3>
                 <p>{story.summary}</p>
                 <XPostEmbed url={story.sourceUrl} />
-                <Link
+                <TrackedContentLink
                   href={buildStoryHref(story.id, story)}
-                  target="_blank"
-                  rel="noreferrer"
+                  contentKind="stories"
+                  contentId={story.id}
+                  title={story.title}
                   className="dashboard-inline-button"
                 >
                   Open story page
-                </Link>
+                </TrackedContentLink>
               </article>
             ) : (
-              <Link key={story.id} href={buildStoryHref(story.id, story)} target="_blank" rel="noreferrer" className="card card-link">
+              <TrackedContentLink
+                key={story.id}
+                href={buildStoryHref(story.id, story)}
+                contentKind="stories"
+                contentId={story.id}
+                title={story.title}
+                className="card card-link"
+              >
                 <span className="card-tag">{story.region}</span>
                 <h3>{story.title}</h3>
                 <p>{story.summary}</p>
                 {story.imageDataUrl ? <img src={story.imageDataUrl} alt={story.title} className="dashboard-event-image" /> : null}
-              </Link>
+              </TrackedContentLink>
             )
           )}
         </div>
@@ -253,12 +262,19 @@ export default function HomeLandingView() {
         </div>
         <div className="card-grid">
           {(featuredCandidates.length ? featuredCandidates : candidates.slice(0, 3)).map((candidate) => (
-            <Link key={candidate.id} href={`/candidates/${candidate.id}`} target="_blank" rel="noreferrer" className="card card-link">
+            <TrackedContentLink
+              key={candidate.id}
+              href={`/candidates/${candidate.id}`}
+              contentKind="candidates"
+              contentId={candidate.id}
+              title={candidate.title}
+              className="card card-link"
+            >
               <span className="card-tag">{candidate.category}</span>
               <h3>{candidate.title}</h3>
               {candidate.summary ? <p>{candidate.summary}</p> : null}
               {candidate.imageDataUrl ? <img src={candidate.imageDataUrl} alt={candidate.title} className="dashboard-event-image" /> : null}
-            </Link>
+            </TrackedContentLink>
           ))}
         </div>
       </section>
@@ -270,13 +286,20 @@ export default function HomeLandingView() {
         </div>
         <div className="card-grid">
           {upcomingEvents.map((event) => (
-            <Link key={event.id} href={`/events/${event.id}`} target="_blank" rel="noreferrer" className="card card-link">
+            <TrackedContentLink
+              key={event.id}
+              href={`/events/${event.id}`}
+              contentKind="events"
+              contentId={event.id}
+              title={event.title}
+              className="card card-link"
+            >
               <span className="card-tag">{event.region}</span>
               <h3>{event.title}</h3>
               <p>{event.description}</p>
               {event.imageDataUrl ? <img src={event.imageDataUrl} alt={event.title} className="dashboard-event-image" /> : null}
               <p className="dashboard-meta">{formatEventDateTime(event.date, event.time)}</p>
-            </Link>
+            </TrackedContentLink>
           ))}
         </div>
       </section>
