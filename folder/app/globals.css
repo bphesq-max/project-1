@@ -482,6 +482,41 @@ main.container {
   margin-bottom: 54px;
 }
 
+.feature-section {
+  position: relative;
+  padding: 28px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 30px;
+  background: rgba(255, 250, 242, 0.52);
+  box-shadow: 0 22px 60px rgba(13, 18, 28, 0.08);
+}
+
+.feature-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201, 151, 31, 0.18), rgba(22, 50, 80, 0.08), transparent);
+}
+
+.feature-section-news {
+  background:
+    radial-gradient(circle at top right, rgba(201, 151, 31, 0.08), transparent 26%),
+    rgba(255, 250, 242, 0.56);
+}
+
+.feature-section-candidates {
+  background:
+    linear-gradient(135deg, rgba(22, 50, 80, 0.03), transparent 40%),
+    rgba(255, 250, 242, 0.56);
+}
+
+.feature-section-events {
+  background:
+    radial-gradient(circle at bottom left, rgba(159, 29, 45, 0.06), transparent 24%),
+    rgba(255, 250, 242, 0.56);
+}
+
 .section-header {
   max-width: 720px;
   margin-bottom: 22px;
@@ -504,6 +539,49 @@ main.container {
   gap: 18px;
 }
 
+.reveal-block {
+  opacity: 0;
+  transform: translateY(34px);
+  transition:
+    opacity 640ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 640ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-block.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-list > * {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-block.is-visible .reveal-list > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-block.is-visible .reveal-list > *:nth-child(1) {
+  transition-delay: 70ms;
+}
+
+.reveal-block.is-visible .reveal-list > *:nth-child(2) {
+  transition-delay: 150ms;
+}
+
+.reveal-block.is-visible .reveal-list > *:nth-child(3) {
+  transition-delay: 230ms;
+}
+
+.reveal-block.is-visible .reveal-list > *:nth-child(4) {
+  transition-delay: 310ms;
+}
+
 .card {
   padding: 24px;
 }
@@ -513,7 +591,8 @@ main.container {
 }
 
 .card-link:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 56px rgba(13, 18, 28, 0.12);
 }
 
 .detail-media-block {

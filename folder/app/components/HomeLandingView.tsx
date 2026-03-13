@@ -25,6 +25,7 @@ import { usePortalContent } from "./portalContentClient";
 import { buildStoryHref } from "./storyHref";
 import XPostEmbed from "./XPostEmbed";
 import TrackedContentLink from "./TrackedContentLink";
+import RevealOnScroll from "./RevealOnScroll";
 
 function normalizeZip(value?: string) {
   return value?.trim().slice(0, 5) ?? "";
@@ -163,13 +164,13 @@ export default function HomeLandingView() {
       </section>
 
       {hasPersonalization || !hasSavedMemberProfile ? (
-      <section className="section personalization-section">
+      <RevealOnScroll as="section" className="section personalization-section">
         <div className="section-header">
           <span className="section-kicker">Your Districts</span>
           <h2 className="heading">Your California view</h2>
         </div>
         {hasPersonalization ? (
-          <div className="personalization-grid">
+          <div className="personalization-grid reveal-list">
             <div className="card">
               <span className="card-tag">Your candidates</span>
               <h3>0</h3>
@@ -210,15 +211,15 @@ export default function HomeLandingView() {
             </Link>
           </div>
         ) : null}
-      </section>
+      </RevealOnScroll>
       ) : null}
 
-      <section className="section">
+      <RevealOnScroll as="section" className="section feature-section feature-section-news">
         <div className="section-header">
           <span className="section-kicker">News</span>
           <h2 className="heading">Latest California news</h2>
         </div>
-        <div className="card-grid">
+        <div className="card-grid reveal-list">
           {(latestStories.length ? latestStories : stories.slice(0, 3)).map((story) =>
             story.storyType === "x-post" && story.sourceUrl ? (
               <article key={story.id} className="card">
@@ -253,14 +254,14 @@ export default function HomeLandingView() {
             )
           )}
         </div>
-      </section>
+      </RevealOnScroll>
 
-      <section className="section">
+      <RevealOnScroll as="section" className="section feature-section feature-section-candidates">
         <div className="section-header">
           <span className="section-kicker">Candidates</span>
           <h2 className="heading">Featured candidates</h2>
         </div>
-        <div className="card-grid">
+        <div className="card-grid reveal-list">
           {(featuredCandidates.length ? featuredCandidates : candidates.slice(0, 3)).map((candidate) => (
             <TrackedContentLink
               key={candidate.id}
@@ -277,14 +278,14 @@ export default function HomeLandingView() {
             </TrackedContentLink>
           ))}
         </div>
-      </section>
+      </RevealOnScroll>
 
-      <section className="section">
+      <RevealOnScroll as="section" className="section feature-section feature-section-events" stagger>
         <div className="section-header">
           <span className="section-kicker">Events</span>
           <h2 className="heading">Upcoming events</h2>
         </div>
-        <div className="card-grid">
+        <div className="card-grid reveal-list">
           {upcomingEvents.map((event) => (
             <TrackedContentLink
               key={event.id}
@@ -302,7 +303,7 @@ export default function HomeLandingView() {
             </TrackedContentLink>
           ))}
         </div>
-      </section>
+      </RevealOnScroll>
     </>
   );
 }
