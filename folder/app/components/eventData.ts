@@ -13,8 +13,6 @@ export type PortalEvent = {
   zipCodes?: string[];
 };
 
-import { createBrowserStore } from "./browserStore";
-
 export const EVENT_STORAGE_KEY = "restore-golden-state-events";
 
 export const defaultEvents: PortalEvent[] = [
@@ -84,14 +82,3 @@ export function toDateKey(date: Date) {
     date.getDate()
   ).padStart(2, "0")}`;
 }
-
-const eventStore = createBrowserStore<PortalEvent[]>({
-  storageKey: EVENT_STORAGE_KEY,
-  eventName: "portal-events-updated",
-  defaultValue: defaultEvents,
-  normalize: sortEvents,
-});
-
-export const readStoredEvents = eventStore.readStoredValue;
-export const persistEvents = eventStore.persistValue;
-export const subscribeToStoredEvents = eventStore.subscribeToValue;

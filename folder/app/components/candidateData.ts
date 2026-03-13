@@ -14,8 +14,6 @@ export type CandidateEntry = {
   zipCodes?: string[];
 };
 
-import { createBrowserStore } from "./browserStore";
-
 export const CANDIDATE_STORAGE_KEY = "restore-golden-state-candidates";
 
 export const defaultCandidates: CandidateEntry[] = [
@@ -37,13 +35,3 @@ export const defaultCandidates: CandidateEntry[] = [
   { id: "dennis-sanchez", title: "Dennis Sanchez for AD29", category: "State Assembly Candidates", districtLabels: ["AD 29"] },
   { id: "shannon-kessler", title: "Shannon Kessler for AD30", category: "State Assembly Candidates", districtLabels: ["AD 30"] },
 ];
-
-const candidateStore = createBrowserStore<CandidateEntry[]>({
-  storageKey: CANDIDATE_STORAGE_KEY,
-  eventName: "portal-candidates-updated",
-  defaultValue: defaultCandidates,
-});
-
-export const readStoredCandidates = candidateStore.readStoredValue;
-export const persistCandidates = candidateStore.persistValue;
-export const subscribeToStoredCandidates = candidateStore.subscribeToValue;

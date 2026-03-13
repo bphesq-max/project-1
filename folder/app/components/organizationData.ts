@@ -12,8 +12,6 @@ export type OrganizationEntry = {
   instagramUrl?: string;
 };
 
-import { createBrowserStore } from "./browserStore";
-
 export const ORGANIZATION_STORAGE_KEY = "restore-golden-state-organizations";
 
 export const defaultOrganizations: OrganizationEntry[] = [
@@ -21,13 +19,3 @@ export const defaultOrganizations: OrganizationEntry[] = [
   { id: "california-congress-of-republicans", title: "California Congress of Republicans" },
   { id: "california-republican-assembly", title: "California Republican Assembly", isFeatured: true },
 ];
-
-const organizationStore = createBrowserStore<OrganizationEntry[]>({
-  storageKey: ORGANIZATION_STORAGE_KEY,
-  eventName: "portal-organizations-updated",
-  defaultValue: defaultOrganizations,
-});
-
-export const readStoredOrganizations = organizationStore.readStoredValue;
-export const persistOrganizations = organizationStore.persistValue;
-export const subscribeToStoredOrganizations = organizationStore.subscribeToValue;

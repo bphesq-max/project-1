@@ -12,8 +12,6 @@ export type NewsEntry = {
   sourceUrl?: string;
 };
 
-import { createBrowserStore } from "./browserStore";
-
 export const NEWS_STORAGE_KEY = "restore-golden-state-news";
 
 export const defaultStories: NewsEntry[] = [
@@ -41,13 +39,3 @@ export const defaultStories: NewsEntry[] = [
       "This can hold local updates that support campaigns, events, or organizational announcements.",
   },
 ];
-
-const storyStore = createBrowserStore<NewsEntry[]>({
-  storageKey: NEWS_STORAGE_KEY,
-  eventName: "portal-news-updated",
-  defaultValue: defaultStories,
-});
-
-export const readStoredStories = storyStore.readStoredValue;
-export const persistStories = storyStore.persistValue;
-export const subscribeToStoredStories = storyStore.subscribeToValue;
