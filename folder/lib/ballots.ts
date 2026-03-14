@@ -9,6 +9,7 @@ import { listPortalContent } from "@/lib/portalContent";
 import { readMemberProfile } from "@/lib/memberAccounts";
 
 const databaseUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const googleCivicApiKey = process.env.GOOGLE_CIVIC_API_KEY;
 const dataDirectory = path.join(process.cwd(), "data");
 const ballotPath = path.join(dataDirectory, "ballotData.json");
 const activeElectionProviderId = "ca-current-ballot-profile";
@@ -53,7 +54,7 @@ export type BallotContestRecord = {
   id: string;
   ballotId: string;
   contestKey: string;
-  contestType: "candidate";
+  contestType: "candidate" | "measure";
   officeName?: string;
   districtName?: string;
   districtNumber?: string;
@@ -98,19 +99,24 @@ export type BallotMatchedCandidate = {
 export type BallotContestView = {
   id: string;
   contestKey: string;
-  contestType: "candidate";
+  contestType: "candidate" | "measure";
   officeName?: string;
   districtName?: string;
   districtNumber?: string;
   ballotTitle: string;
   sortOrder: number;
   matchedCandidates: BallotMatchedCandidate[];
+  officialCandidateNames?: string[];
 };
 
 export type BallotPreview = {
   election: BallotElectionRecord;
   address: BallotAddressRecord;
   contests: BallotContestView[];
+  pollingLocations: Array<Record<string, unknown>>;
+  earlyVotingSites: Array<Record<string, unknown>>;
+  dropBoxes: Array<Record<string, unknown>>;
+  lookupMode: "official" | "internal";
   coverageNote: string;
 };
 
@@ -184,7 +190,7 @@ type ContestRow = {
   id: string;
   ballot_id: string;
   contest_key: string;
-  contest_type: "candidate";
+  contest_type: "candidate" | "measure";
   office_name: string | null;
   district_name: string | null;
   district_number: string | null;
@@ -207,11 +213,13 @@ type MatchRow = {
 type ContestSeed = {
   contestKey: string;
   ballotTitle: string;
+  contestType: "candidate" | "measure";
   officeName?: string;
   districtName?: string;
   districtNumber?: string;
   sortOrder: number;
   matchedCandidates: CandidateEntry[];
+  officialCandidateNames?: string[];
 };
 
 declare global {
@@ -490,6 +498,115 @@ function normalizeZip(zipCode: string) {
   return digits;
 }
 
+function normalizeLabel(value?: string) {
+  return (value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function extractDistrictNumber(value?: string) {
+  const match = value?.match(/\b(\d+)\b/);
+  return match?.[1];
+}
+
+function formatLocationAddress(address: Record<string, unknown> | undefined) {
+  if (!address) {
+    return "";
+  }
+
+  const lines = [
+    typeof address.line1 === "string" ? address.line1 : "",
+    typeof address.line2 === "string" ? address.line2 : "",
+    typeof address.line3 === "string" ? address.line3 : "",
+  ].filter(Boolean);
+
+  const city = typeof address.city === "string" ? address.city : "";
+  const state = typeof address.state === "string" ? address.state : "";
+  const zip = typeof address.zip === "string" ? address.zip : "";
+  const cityLine = [city, state, zip].filter(Boolean).join(", ").replace(", ,", ",");
+
+  return [...lines, cityLine].filter(Boolean).join(" · ");
+}
+
+function mapLocationEntry(entry: Record<string, unknown>) {
+  const address =
+    typeof entry.address === "object" && entry.address !== null
+      ? (entry.address as Record<string, unknown>)
+      : undefined;
+  const name = typeof entry.addressLocationName === "string"
+    ? entry.addressLocationName
+    : typeof entry.name === "string"
+      ? entry.name
+      : "Voting location";
+
+  return {
+    name,
+    address: formatLocationAddress(address),
+    notes:
+      typeof entry.notes === "string"
+        ? entry.notes
+        : typeof entry.pollingHours === "string"
+          ? entry.pollingHours
+          : undefined,
+  };
+}
+
+function scoreCandidateMatch(candidate: CandidateEntry, contest: ContestSeed) {
+  const candidateOffice = normalizeLabel(candidate.title.split(" for ")[1]?.trim() || candidate.title);
+  const candidateTitle = normalizeLabel(candidate.title);
+  const contestOffice = normalizeLabel(contest.officeName || contest.ballotTitle);
+  const contestDistrict = normalizeLabel(contest.districtName || contest.ballotTitle);
+  const contestDistrictNumber = contest.districtNumber || extractDistrictNumber(contest.ballotTitle);
+
+  let score = 0;
+
+  if (candidate.category === "Statewide Candidates") {
+    if (candidateOffice === contestOffice || candidateTitle.includes(contestOffice)) {
+      score += 10;
+    }
+  }
+
+  for (const label of candidate.districtLabels ?? []) {
+    const normalizedLabel = normalizeLabel(label);
+    if (contestDistrict && normalizedLabel === contestDistrict) {
+      score += 10;
+    }
+
+    const districtNumber = extractDistrictNumber(label);
+    if (contestDistrictNumber && districtNumber === contestDistrictNumber) {
+      score += 6;
+    }
+  }
+
+  if (
+    contestOffice &&
+    candidateOffice &&
+    (candidateOffice === contestOffice ||
+      candidateTitle.includes(contestOffice) ||
+      contestOffice.includes(candidateOffice))
+  ) {
+    score += 4;
+  }
+
+  return score;
+}
+
+function matchCandidatesToContest(candidates: CandidateEntry[], contest: ContestSeed) {
+  if (contest.contestType !== "candidate") {
+    return [];
+  }
+
+  return candidates
+    .map((candidate) => ({
+      candidate,
+      score: scoreCandidateMatch(candidate, contest),
+    }))
+    .filter((entry) => entry.score >= 8)
+    .sort((left, right) => right.score - left.score || left.candidate.title.localeCompare(right.candidate.title))
+    .map((entry) => entry.candidate);
+}
+
 function buildNormalizedAddress(address: BallotAddressInput) {
   return [address.street1, address.street2, address.city, address.county, "CA", address.zipCode]
     .filter(Boolean)
@@ -622,6 +739,7 @@ function groupCandidatesForBallot(candidates: CandidateEntry[], zipCode: string)
         statewideGroups.set(contestKey, {
           contestKey,
           ballotTitle,
+          contestType: "candidate",
           officeName,
           sortOrder: statewideGroups.size,
           matchedCandidates: [candidate],
@@ -646,6 +764,7 @@ function groupCandidatesForBallot(candidates: CandidateEntry[], zipCode: string)
       localGroups.set(contestKey, {
         contestKey,
         ballotTitle: districtLabel,
+        contestType: "candidate",
         officeName: candidate.title.split(" for ")[1]?.trim() || candidate.title,
         districtName: districtLabel,
         districtNumber: districtLabel.replace(/[^0-9]/g, "") || undefined,
@@ -660,12 +779,177 @@ function groupCandidatesForBallot(candidates: CandidateEntry[], zipCode: string)
   );
 }
 
+async function fetchOfficialCaliforniaBallot(input: BallotAddressInput) {
+  if (!googleCivicApiKey) {
+    return null;
+  }
+
+  const address = buildNormalizedAddress(input);
+  const params = new URLSearchParams({
+    address,
+    key: googleCivicApiKey,
+    officialOnly: "false",
+  });
+
+  const response = await fetch(
+    `https://www.googleapis.com/civicinfo/v2/voterinfo?${params.toString()}`,
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = (await response.json()) as Record<string, unknown>;
+  return data;
+}
+
+async function buildOfficialPreviewForAddress(
+  memberEmail: string,
+  input: BallotAddressInput
+): Promise<BallotPreview | null> {
+  const official = await fetchOfficialCaliforniaBallot(input);
+
+  if (!official) {
+    return null;
+  }
+
+  const candidates = await listPortalContent("candidates");
+  const electionData =
+    typeof official.election === "object" && official.election !== null
+      ? (official.election as Record<string, unknown>)
+      : undefined;
+  const election: BallotElectionRecord = {
+    id:
+      typeof electionData?.id === "string"
+        ? `google-civic:${electionData.id}`
+        : activeElectionProviderId,
+    providerElectionId:
+      typeof electionData?.id === "string" ? `google-civic:${electionData.id}` : activeElectionProviderId,
+    name:
+      typeof electionData?.name === "string"
+        ? electionData.name
+        : "Current California ballot profile",
+    electionDate:
+      typeof electionData?.electionDay === "string" ? electionData.electionDay : undefined,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const contestsRaw = Array.isArray(official.contests)
+    ? (official.contests as Array<Record<string, unknown>>)
+    : [];
+
+  const contestSeeds = contestsRaw.map((contest, index) => {
+    const district =
+      typeof contest.district === "object" && contest.district !== null
+        ? (contest.district as Record<string, unknown>)
+        : undefined;
+    const officeName =
+      typeof contest.office === "string"
+        ? contest.office
+        : typeof contest.referendumTitle === "string"
+          ? contest.referendumTitle
+          : undefined;
+    const ballotTitle = officeName || `Contest ${index + 1}`;
+    const districtName =
+      typeof district?.name === "string"
+        ? district.name
+        : typeof contest.name === "string"
+          ? contest.name
+          : undefined;
+    const officialCandidateNames = Array.isArray(contest.candidates)
+      ? (contest.candidates as Array<Record<string, unknown>>)
+          .map((entry) => (typeof entry.name === "string" ? entry.name : undefined))
+          .filter(Boolean) as string[]
+      : undefined;
+    const contestType = typeof contest.referendumTitle === "string" ? "measure" : "candidate";
+
+    const seed: ContestSeed = {
+      contestKey: `official:${normalizeLabel(ballotTitle)}:${extractDistrictNumber(districtName) || index}`,
+      ballotTitle,
+      contestType,
+      officeName,
+      districtName,
+      districtNumber: extractDistrictNumber(districtName),
+      sortOrder: index,
+      matchedCandidates: [],
+      officialCandidateNames,
+    };
+
+    seed.matchedCandidates = matchCandidatesToContest(candidates, seed);
+    return seed;
+  });
+
+  const normalized = normalizeAddressInput(input);
+  const addressRecord: BallotAddressRecord = {
+    id: randomUUID(),
+    memberEmail,
+    street1: normalized.street1,
+    street2: normalized.street2,
+    city: normalized.city,
+    state: "CA",
+    zipCode: normalized.zipCode,
+    county: normalized.county,
+    region: getRegionForCounty(normalized.county),
+    normalizedAddress: buildNormalizedAddress(normalized),
+    lookupProvider: "google-civic",
+    lookupStatus: "official_lookup_ready",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const pollingLocations = Array.isArray(official.pollingLocations)
+    ? (official.pollingLocations as Array<Record<string, unknown>>).map(mapLocationEntry)
+    : [];
+  const earlyVotingSites = Array.isArray(official.earlyVoteSites)
+    ? (official.earlyVoteSites as Array<Record<string, unknown>>).map(mapLocationEntry)
+    : [];
+  const dropBoxes = Array.isArray(official.dropOffLocations)
+    ? (official.dropOffLocations as Array<Record<string, unknown>>).map(mapLocationEntry)
+    : [];
+
+  return {
+    election,
+    address: addressRecord,
+    contests: contestSeeds.map((contest, index) => ({
+      id: `${contest.contestKey}:${index}`,
+      contestKey: contest.contestKey,
+      contestType: contest.contestType,
+      officeName: contest.officeName,
+      districtName: contest.districtName,
+      districtNumber: contest.districtNumber,
+      ballotTitle: contest.ballotTitle,
+      sortOrder: contest.sortOrder,
+      matchedCandidates: contest.matchedCandidates.map((candidate) => ({
+        id: candidate.id,
+        title: candidate.title,
+        href: `/candidates/${candidate.id}`,
+      })),
+      officialCandidateNames: contest.officialCandidateNames,
+    })),
+    pollingLocations,
+    earlyVotingSites,
+    dropBoxes,
+    lookupMode: "official",
+    coverageNote:
+      "Official ballot, polling place, and voting-site data are connected for this address. Candidate links below are matched to your site where coverage already exists.",
+  };
+}
+
 async function buildPreviewForAddress(
   memberEmail: string,
   input: BallotAddressInput
 ): Promise<BallotPreview> {
   const normalized = normalizeAddressInput(input);
   validateCaliforniaAddress(normalized);
+  const officialPreview = await buildOfficialPreviewForAddress(memberEmail, normalized);
+
+  if (officialPreview) {
+    return officialPreview;
+  }
+
   const region = getRegionForCounty(normalized.county);
   const election = await readActiveElection();
   const candidates = await listPortalContent("candidates");
@@ -695,11 +979,15 @@ async function buildPreviewForAddress(
   return {
     election,
     address,
+    pollingLocations: [],
+    earlyVotingSites: [],
+    dropBoxes: [],
+    lookupMode: "internal",
     coverageNote,
     contests: contestSeeds.map((contest, index) => ({
       id: `${contest.contestKey}:${index}`,
       contestKey: contest.contestKey,
-      contestType: "candidate",
+      contestType: contest.contestType,
       officeName: contest.officeName,
       districtName: contest.districtName,
       districtNumber: contest.districtNumber,
@@ -710,6 +998,7 @@ async function buildPreviewForAddress(
         title: candidate.title,
         href: `/candidates/${candidate.id}`,
       })),
+      officialCandidateNames: contest.officialCandidateNames,
     })),
   };
 }
@@ -889,6 +1178,11 @@ async function readSavedBallotFromDatabase(memberEmail: string) {
           title: candidate!.title,
           href: `/candidates/${candidate!.id}`,
         })),
+      officialCandidateNames: Array.isArray(contest.contestJson.matchedCandidateIds)
+        ? undefined
+        : Array.isArray((contest.contestJson as { officialCandidateNames?: unknown }).officialCandidateNames)
+          ? ((contest.contestJson as { officialCandidateNames?: unknown }).officialCandidateNames as string[])
+          : undefined,
     })),
   };
 }
@@ -935,6 +1229,11 @@ async function readSavedBallotFromFile(memberEmail: string) {
             title: candidate!.title,
             href: `/candidates/${candidate!.id}`,
           })),
+        officialCandidateNames: Array.isArray(
+          (contest.contestJson as { officialCandidateNames?: unknown }).officialCandidateNames
+        )
+          ? ((contest.contestJson as { officialCandidateNames?: unknown }).officialCandidateNames as string[])
+          : undefined,
       })),
   };
 }
@@ -1005,13 +1304,33 @@ async function saveBallotToDatabase(preview: BallotPreview) {
     addressId: address.id,
     county: address.county,
     region: address.region,
-    pollingLocations: [],
-    earlyVotingSites: [],
-    dropBoxes: [],
+    pollingLocations: preview.pollingLocations,
+    earlyVotingSites: preview.earlyVotingSites,
+    dropBoxes: preview.dropBoxes,
     coverageNote: preview.coverageNote,
     generatedAt: existingBallot?.generatedAt ?? now,
     updatedAt: now,
   };
+
+  await sql`update elections set is_active = false where is_active = true and id <> ${preview.election.id}`;
+  await sql`
+    insert into elections (id, provider_election_id, name, election_date, is_active, created_at, updated_at)
+    values (
+      ${preview.election.id},
+      ${preview.election.providerElectionId},
+      ${preview.election.name},
+      ${preview.election.electionDate ?? null},
+      true,
+      ${preview.election.createdAt},
+      ${now}
+    )
+    on conflict (provider_election_id) do update
+    set
+      name = excluded.name,
+      election_date = excluded.election_date,
+      is_active = excluded.is_active,
+      updated_at = excluded.updated_at
+  `;
 
   await sql`
     insert into member_ballots (
@@ -1086,6 +1405,7 @@ async function saveBallotToDatabase(preview: BallotPreview) {
         ${contest.sortOrder},
         ${sql.json({
           matchedCandidateIds: contest.matchedCandidates.map((candidate) => candidate.id),
+          officialCandidateNames: contest.officialCandidateNames ?? [],
         })},
         ${now}
       )
@@ -1144,9 +1464,9 @@ async function saveBallotToFile(preview: BallotPreview) {
     addressId: address.id,
     county: address.county,
     region: address.region,
-    pollingLocations: [],
-    earlyVotingSites: [],
-    dropBoxes: [],
+    pollingLocations: preview.pollingLocations,
+    earlyVotingSites: preview.earlyVotingSites,
+    dropBoxes: preview.dropBoxes,
     coverageNote: preview.coverageNote,
     generatedAt: existingBallot?.generatedAt ?? now,
     updatedAt: now,
@@ -1174,6 +1494,7 @@ async function saveBallotToFile(preview: BallotPreview) {
       sortOrder: contest.sortOrder,
       contestJson: {
         matchedCandidateIds: contest.matchedCandidates.map((candidate) => candidate.id),
+        officialCandidateNames: contest.officialCandidateNames ?? [],
       },
       createdAt: now,
     });

@@ -16,6 +16,7 @@ type BallotAddressForm = {
 type BallotContestView = {
   id: string;
   ballotTitle: string;
+  contestType: "candidate" | "measure";
   officeName?: string;
   districtName?: string;
   matchedCandidates: Array<{
@@ -23,6 +24,7 @@ type BallotContestView = {
     title: string;
     href: string;
   }>;
+  officialCandidateNames?: string[];
 };
 
 type BallotPreview = {
@@ -37,6 +39,22 @@ type BallotPreview = {
     region?: string;
   };
   contests: BallotContestView[];
+  pollingLocations: Array<{
+    name: string;
+    address?: string;
+    notes?: string;
+  }>;
+  earlyVotingSites: Array<{
+    name: string;
+    address?: string;
+    notes?: string;
+  }>;
+  dropBoxes: Array<{
+    name: string;
+    address?: string;
+    notes?: string;
+  }>;
+  lookupMode: "official" | "internal";
   coverageNote: string;
 };
 
@@ -58,6 +76,21 @@ type SavedBallotResponse = {
   ballot?: {
     generatedAt: string;
     coverageNote?: string;
+    pollingLocations?: Array<{
+      name: string;
+      address?: string;
+      notes?: string;
+    }>;
+    earlyVotingSites?: Array<{
+      name: string;
+      address?: string;
+      notes?: string;
+    }>;
+    dropBoxes?: Array<{
+      name: string;
+      address?: string;
+      notes?: string;
+    }>;
   };
   contests?: BallotContestView[];
   suggestedAddress?: {
@@ -289,14 +322,70 @@ export default function BallotFinder() {
           <div>
             <h2 className="panel-title">{preview.election.name}</h2>
             <p className="section-intro">{preview.address.normalizedAddress}</p>
+            <p className="section-intro">
+              {preview.lookupMode === "official"
+                ? "Official California election data is connected for this preview."
+                : "Official live ballot data is not connected yet, so this preview is using your current site coverage and ZIP-matched district tags."}
+            </p>
             <p className="section-intro">{preview.coverageNote}</p>
           </div>
+          {preview.pollingLocations.length || preview.earlyVotingSites.length || preview.dropBoxes.length ? (
+            <div className="dashboard-grid">
+              {preview.pollingLocations.length ? (
+                <div className="dashboard-panel">
+                  <h3 className="panel-title">Polling places</h3>
+                  <div className="stack-list">
+                    {preview.pollingLocations.map((location) => (
+                      <div key={`${location.name}-${location.address}`} className="dashboard-item">
+                        <h3>{location.name}</h3>
+                        {location.address ? <p>{location.address}</p> : null}
+                        {location.notes ? <p className="dashboard-meta">{location.notes}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {preview.earlyVotingSites.length ? (
+                <div className="dashboard-panel">
+                  <h3 className="panel-title">Early voting</h3>
+                  <div className="stack-list">
+                    {preview.earlyVotingSites.map((location) => (
+                      <div key={`${location.name}-${location.address}`} className="dashboard-item">
+                        <h3>{location.name}</h3>
+                        {location.address ? <p>{location.address}</p> : null}
+                        {location.notes ? <p className="dashboard-meta">{location.notes}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {preview.dropBoxes.length ? (
+                <div className="dashboard-panel">
+                  <h3 className="panel-title">Drop boxes</h3>
+                  <div className="stack-list">
+                    {preview.dropBoxes.map((location) => (
+                      <div key={`${location.name}-${location.address}`} className="dashboard-item">
+                        <h3>{location.name}</h3>
+                        {location.address ? <p>{location.address}</p> : null}
+                        {location.notes ? <p className="dashboard-meta">{location.notes}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="stack-list">
             {preview.contests.length ? (
               preview.contests.map((contest) => (
                 <div key={contest.id} className="dashboard-item">
                   <h3>{contest.ballotTitle}</h3>
                   {contest.officeName ? <p>{contest.officeName}</p> : null}
+                  {contest.officialCandidateNames?.length ? (
+                    <p className="dashboard-meta">
+                      Official listing: {contest.officialCandidateNames.join(", ")}
+                    </p>
+                  ) : null}
                   {contest.matchedCandidates.length ? (
                     <div className="stack-list">
                       {contest.matchedCandidates.map((candidate) => (
@@ -312,7 +401,11 @@ export default function BallotFinder() {
                       ))}
                     </div>
                   ) : (
-                    <p className="section-intro">No candidate page is matched to this contest yet.</p>
+                    <p className="section-intro">
+                      {contest.contestType === "measure"
+                        ? "This ballot measure is recorded here, but your site does not have a linked measure page yet."
+                        : "No candidate page is matched to this contest yet."}
+                    </p>
                   )}
                 </div>
               ))
@@ -352,11 +445,64 @@ export default function BallotFinder() {
               <p className="section-intro">{savedBallot.ballot.coverageNote}</p>
             ) : null}
           </div>
+          {savedBallot.ballot.pollingLocations?.length ||
+          savedBallot.ballot.earlyVotingSites?.length ||
+          savedBallot.ballot.dropBoxes?.length ? (
+            <div className="dashboard-grid">
+              {savedBallot.ballot.pollingLocations?.length ? (
+                <div className="dashboard-panel">
+                  <h3 className="panel-title">Saved polling places</h3>
+                  <div className="stack-list">
+                    {savedBallot.ballot.pollingLocations.map((location) => (
+                      <div key={`${location.name}-${location.address}`} className="dashboard-item">
+                        <h3>{location.name}</h3>
+                        {location.address ? <p>{location.address}</p> : null}
+                        {location.notes ? <p className="dashboard-meta">{location.notes}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {savedBallot.ballot.earlyVotingSites?.length ? (
+                <div className="dashboard-panel">
+                  <h3 className="panel-title">Saved early voting sites</h3>
+                  <div className="stack-list">
+                    {savedBallot.ballot.earlyVotingSites.map((location) => (
+                      <div key={`${location.name}-${location.address}`} className="dashboard-item">
+                        <h3>{location.name}</h3>
+                        {location.address ? <p>{location.address}</p> : null}
+                        {location.notes ? <p className="dashboard-meta">{location.notes}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {savedBallot.ballot.dropBoxes?.length ? (
+                <div className="dashboard-panel">
+                  <h3 className="panel-title">Saved drop boxes</h3>
+                  <div className="stack-list">
+                    {savedBallot.ballot.dropBoxes.map((location) => (
+                      <div key={`${location.name}-${location.address}`} className="dashboard-item">
+                        <h3>{location.name}</h3>
+                        {location.address ? <p>{location.address}</p> : null}
+                        {location.notes ? <p className="dashboard-meta">{location.notes}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="stack-list">
             {(savedBallot.contests ?? []).map((contest) => (
               <div key={contest.id} className="dashboard-item">
                 <h3>{contest.ballotTitle}</h3>
                 {contest.officeName ? <p>{contest.officeName}</p> : null}
+                {contest.officialCandidateNames?.length ? (
+                  <p className="dashboard-meta">
+                    Official listing: {contest.officialCandidateNames.join(", ")}
+                  </p>
+                ) : null}
                 {contest.matchedCandidates.length ? (
                   <div className="stack-list">
                     {contest.matchedCandidates.map((candidate) => (
@@ -372,7 +518,11 @@ export default function BallotFinder() {
                     ))}
                   </div>
                 ) : (
-                  <p className="section-intro">Admin matching is still needed for this contest.</p>
+                  <p className="section-intro">
+                    {contest.contestType === "measure"
+                      ? "This measure is stored on the ballot, but your site does not have a linked measure page yet."
+                      : "Admin matching is still needed for this contest."}
+                  </p>
                 )}
               </div>
             ))}
