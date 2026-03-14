@@ -357,9 +357,6 @@ export default function MembersPage() {
                 <p>{session.user?.email}</p>
               </div>
               <div className="dashboard-inline-actions">
-                <Link href="/ballot" className="dashboard-inline-button">
-                  Find my ballot
-                </Link>
                 <button
                   type="button"
                   className="dashboard-inline-button"
@@ -368,6 +365,20 @@ export default function MembersPage() {
                   Sign out
                 </button>
               </div>
+            </div>
+
+            <div className="member-account-links">
+              <Link href="/ballot" className="dashboard-inline-button">
+                Find my ballot
+              </Link>
+              <a
+                href="https://voterstatus.sos.ca.gov/"
+                className="dashboard-inline-button"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Check My California Voter Registration to Make Sure it is Current
+              </a>
             </div>
 
             <div className="member-divider">
