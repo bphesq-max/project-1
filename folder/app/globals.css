@@ -1469,6 +1469,16 @@ select {
   gap: 16px;
 }
 
+.ballot-form {
+  gap: 18px;
+}
+
+.ballot-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .event-image-preview {
   max-width: 260px;
 }
@@ -1532,6 +1542,7 @@ select {
   .dashboard-grid,
   .calendar-featured-grid,
   .social-buttons,
+  .ballot-form-grid,
   .form-row {
     grid-template-columns: 1fr;
   }

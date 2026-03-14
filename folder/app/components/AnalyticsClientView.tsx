@@ -33,6 +33,14 @@ type PathTransitionItem = {
   count: number;
 };
 
+type BallotAnalyticsSummary = {
+  totalSavedAddresses: number;
+  totalSavedBallots: number;
+  activeElectionName: string;
+  byCounty: AnalyticsSummaryItem[];
+  byRegion: AnalyticsSummaryItem[];
+};
+
 export default function AnalyticsClientView() {
   const snapshot = useAdminSnapshot();
   const memberProfile = snapshot.memberProfile;
@@ -45,6 +53,7 @@ export default function AnalyticsClientView() {
     topViewedPages: AnalyticsSummaryItem[];
     topTransitions: PathTransitionItem[];
     topContentClicks: ContentClickSummaryItem[];
+    ballotAnalytics: BallotAnalyticsSummary;
   }>({
     totalPageViews: 0,
     totalContentClicks: 0,
@@ -53,6 +62,13 @@ export default function AnalyticsClientView() {
     topViewedPages: [],
     topTransitions: [],
     topContentClicks: [],
+    ballotAnalytics: {
+      totalSavedAddresses: 0,
+      totalSavedBallots: 0,
+      activeElectionName: "Current California ballot profile",
+      byCounty: [],
+      byRegion: [],
+    },
   });
 
   useEffect(() => {
@@ -92,6 +108,7 @@ export default function AnalyticsClientView() {
           topViewedPages?: AnalyticsSummaryItem[];
           topTransitions?: PathTransitionItem[];
           topContentClicks?: ContentClickSummaryItem[];
+          ballotAnalytics?: BallotAnalyticsSummary;
         };
 
         if (isMounted && response.ok) {
@@ -103,6 +120,13 @@ export default function AnalyticsClientView() {
             topViewedPages: data.topViewedPages ?? [],
             topTransitions: data.topTransitions ?? [],
             topContentClicks: data.topContentClicks ?? [],
+            ballotAnalytics: data.ballotAnalytics ?? {
+              totalSavedAddresses: 0,
+              totalSavedBallots: 0,
+              activeElectionName: "Current California ballot profile",
+              byCounty: [],
+              byRegion: [],
+            },
           });
         }
       })
@@ -116,6 +140,13 @@ export default function AnalyticsClientView() {
             topViewedPages: [],
             topTransitions: [],
             topContentClicks: [],
+            ballotAnalytics: {
+              totalSavedAddresses: 0,
+              totalSavedBallots: 0,
+              activeElectionName: "Current California ballot profile",
+              byCounty: [],
+              byRegion: [],
+            },
           });
         }
       });
@@ -165,8 +196,12 @@ export default function AnalyticsClientView() {
           <p>Pending submissions</p>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{memberProfile.county ? 1 : 0}</span>
-          <p>Saved member profile on this device</p>
+          <span className="stat-value">{analytics.ballotAnalytics.totalSavedAddresses}</span>
+          <p>Saved ballot addresses</p>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value">{analytics.ballotAnalytics.totalSavedBallots}</span>
+          <p>Saved ballots</p>
         </div>
       </div>
 
@@ -257,6 +292,40 @@ export default function AnalyticsClientView() {
 
       <div className="dashboard-panel page-stack">
         <div>
+          <h2 className="panel-title">Ballot geography</h2>
+          <p className="section-intro">
+            Private counts showing where California members have saved ballot
+            addresses and optional ballot snapshots for {analytics.ballotAnalytics.activeElectionName}.
+          </p>
+        </div>
+        <div className="dashboard-grid">
+          <div className="dashboard-panel">
+            <h3 className="panel-title">Members by county</h3>
+            <div className="stack-list">
+              {analytics.ballotAnalytics.byCounty.length ? analytics.ballotAnalytics.byCounty.map((item) => (
+                <div key={item.label} className="dashboard-item">
+                  <h3>{item.label}</h3>
+                  <p className="dashboard-meta">{item.count} saved address{item.count === 1 ? "" : "es"}</p>
+                </div>
+              )) : <p className="section-intro">No saved ballot counties yet.</p>}
+            </div>
+          </div>
+          <div className="dashboard-panel">
+            <h3 className="panel-title">Members by region</h3>
+            <div className="stack-list">
+              {analytics.ballotAnalytics.byRegion.length ? analytics.ballotAnalytics.byRegion.map((item) => (
+                <div key={item.label} className="dashboard-item">
+                  <h3>{item.label}</h3>
+                  <p className="dashboard-meta">{item.count} saved address{item.count === 1 ? "" : "es"}</p>
+                </div>
+              )) : <p className="section-intro">No saved ballot regions yet.</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-panel page-stack">
+        <div>
           <h2 className="panel-title">Member profile status</h2>
           <p className="section-intro">
             Current browser profile: {memberProfile.county ? `${memberProfile.county}${memberProfile.region ? `, ${memberProfile.region}` : ""}` : "No county saved yet"}.
@@ -265,11 +334,14 @@ export default function AnalyticsClientView() {
         <div>
           <h2 className="panel-title">Secure database next step</h2>
           <p className="section-intro">
-            Member accounts are now stored in the production database. The next
-            refinement after this analytics layer is expanding tracking into
-            email opt-ins, submissions, and other campaign actions.
+            Member accounts and published content now run through the production
+            database. The next refinement after this ballot layer is connecting
+            an official precinct-level California election feed.
           </p>
-          <Link href="/members" className="dashboard-inline-button">Review member flow</Link>
+          <div className="dashboard-inline-actions">
+            <Link href="/members" className="dashboard-inline-button">Review member flow</Link>
+            <Link href="/ballot" className="dashboard-inline-button">Open ballot finder</Link>
+          </div>
         </div>
       </div>
 

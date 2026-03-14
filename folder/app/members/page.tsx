@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import {
@@ -355,13 +356,18 @@ export default function MembersPage() {
                 <strong>{session.user?.name || session.user?.email}</strong>
                 <p>{session.user?.email}</p>
               </div>
-              <button
-                type="button"
-                className="dashboard-inline-button"
-                onClick={() => signOut({ callbackUrl: "/members" })}
-              >
-                Sign out
-              </button>
+              <div className="dashboard-inline-actions">
+                <Link href="/ballot" className="dashboard-inline-button">
+                  Find my ballot
+                </Link>
+                <button
+                  type="button"
+                  className="dashboard-inline-button"
+                  onClick={() => signOut({ callbackUrl: "/members" })}
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
 
             <div className="member-divider">

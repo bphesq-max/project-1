@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/auth";
+import { getBallotAnalyticsOverview } from "@/lib/ballots";
 import { isAdminEmail } from "@/lib/memberAccounts";
 import { getAnalyticsOverview } from "@/lib/siteAnalytics";
 
@@ -12,6 +13,12 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const overview = await getAnalyticsOverview();
-  return NextResponse.json(overview);
+  const [overview, ballotOverview] = await Promise.all([
+    getAnalyticsOverview(),
+    getBallotAnalyticsOverview(),
+  ]);
+  return NextResponse.json({
+    ...overview,
+    ballotAnalytics: ballotOverview,
+  });
 }
